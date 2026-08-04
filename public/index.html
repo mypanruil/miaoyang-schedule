@@ -95,6 +95,47 @@
   .emp-row input{flex:1}
   .hidden{display:none}
   footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
+
+  /* ---------- 移动端优化 ---------- */
+  @media (max-width:640px){
+    body{font-size:15px}
+    .topbar{padding:10px 0}
+    .topbar-inner{padding:0 12px;gap:8px}
+    .brand-title{font-size:16px}
+    .brand-sub{font-size:11px}
+    .tabs{gap:6px}
+    .tab{padding:6px 12px;font-size:13px}
+    .wrap{padding:12px}
+    .card{padding:14px;border-radius:10px;margin-bottom:14px}
+    .card-title{font-size:15px;margin-bottom:12px;gap:6px}
+    .card-title .meta{font-size:12px;width:100%}
+    .row{flex-direction:column;align-items:stretch;gap:10px}
+    .row .field{min-width:0;width:100%}
+    .row .field.sm{flex:none;width:100%}
+    .month-picker{display:flex;gap:8px}
+    .actions{display:flex;width:100%;gap:10px}
+    .actions button{flex:1;padding:11px 8px;font-size:14px}
+    .month-picker select{padding:9px 6px;font-size:14px}
+    .status-bar{margin:12px 0 8px;gap:8px}
+    .rest-count{font-size:14px}
+    .rest-count b{font-size:17px}
+    .hint{font-size:11px}
+    .legend{gap:12px;font-size:12px;margin-bottom:10px}
+    .dot{width:10px;height:10px}
+    .cal{margin:0 -4px;padding:0 4px;overflow-x:visible}
+    .calgrid{grid-template-columns:repeat(7,1fr);gap:4px;min-width:0}
+    .wd{font-size:11px;padding:4px 0}
+    .day-cell{min-height:0;padding:5px 3px 7px;border-radius:8px;gap:3px;align-items:center;justify-content:center}
+    .day-cell .day-num{font-size:13px;font-weight:700}
+    .day-cell select{font-size:12px;padding:5px 2px;height:auto;min-height:32px;border-radius:5px;text-align:center;direction:ltr;width:100%;min-width:0;-webkit-appearance:none;appearance:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\") no-repeat right 3px center;background-size:12px}
+    .day-cell.empty{visibility:hidden;border:none;background:transparent}
+    .submit-area{margin-top:14px;padding-top:12px}
+    .submit-area button{width:100%;padding:14px;font-size:16px}
+    .submit-tip{font-size:12px}
+    .msg{font-size:13px;padding:8px 10px}
+    select,input{font-size:15px;padding:10px}
+    button{padding:10px 14px;font-size:14px}
+  }
 </style>
 </head>
 <body>
@@ -413,7 +454,6 @@ async function saveSettings(){
   catch(e){showMsg('setMsg',e,'err');}
 }
 
-buildMonthsPool();
 document.getElementById('btnEmpLoad').disabled=true;
 loadConfig().then(()=>{document.getElementById('btnEmpLoad').disabled=false;}).catch(e=>showMsg('empMsg',e,'err'));
 </script>
