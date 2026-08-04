@@ -124,7 +124,7 @@ const server = http.createServer((req, res) => {
       if (!empCfg) return sendJson(res, 400, { error: '员工不存在' });
       if (empCfg.pin && empCfg.pin.length && String(pin) !== empCfg.pin) return sendJson(res, 403, { error: 'PIN 不正确' });
       const rest = countRest(schedule);
-      if (rest !== DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数必须为 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
+      if (rest > DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数不能超过 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
       DATA.schedules[month] = DATA.schedules[month] || {};
       DATA.schedules[month][emp] = schedule;
       DATA.lastSubmitted[emp] = new Date().toISOString();
@@ -237,7 +237,7 @@ function buildReportHtml(month, sch) {
   for (const name of names) {
     const s = sch[name] || {};
     const rest = countRest(s);
-    const bad = rest !== cfg.restDaysPerMonth;
+    const bad = rest > cfg.restDaysPerMonth;
     rows += `<tr><td class="${bad ? 'bad' : ''}">${esc(name)}${bad ? ` <span class="warn">(${rest}天)</span>` : ''}</td>`;
     for (let d = 1; d <= n; d++) {
       const v = s[String(d)] || '';
