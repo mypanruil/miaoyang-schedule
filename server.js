@@ -40,6 +40,12 @@ function loadData() {
 function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
 let DATA = loadData();
+// 安全：把历史弱默认密码 admin123 升级为强密码
+if (DATA.config.adminPassword === 'admin123') {
+  DATA.config.adminPassword = DEFAULT_CONFIG.adminPassword;
+  saveData(DATA);
+  console.log('[安全] 已将历史默认管理员密码 admin123 升级为强密码');
+}
 const adminTokens = new Set(DATA.adminTokens);
 
 function readBody(req, cb) {
