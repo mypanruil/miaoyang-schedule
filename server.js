@@ -18,7 +18,7 @@ const DEFAULT_CONFIG = {
   earlyShift: '09:00-17:00',
   lateShift: '10:00-19:00',
   restDaysPerMonth: 5,
-  adminPassword: 'admin123',
+  adminPassword: 'MiaoYang@2026',
   employees: Array.from({ length: 12 }, (_, i) => ({ name: '员工' + String(i + 1).padStart(2, '0'), pin: '' }))
 };
 
@@ -40,6 +40,12 @@ function loadData() {
 function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
 let DATA = loadData();
+// 安全：把历史弱默认密码 admin123 升级为强密码
+if (DATA.config.adminPassword === 'admin123') {
+  DATA.config.adminPassword = DEFAULT_CONFIG.adminPassword;
+  saveData(DATA);
+  console.log('[安全] 已将历史默认管理员密码 admin123 升级为强密码');
+}
 const adminTokens = new Set(DATA.adminTokens);
 
 function readBody(req, cb) {
@@ -94,6 +100,8 @@ const server = http.createServer((req, res) => {
   // ---- 静态首页 ----
   if (p === '/' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'index.html'));
   if (p.startsWith('/static/') && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, path.basename(p)));
+  if (p === '/admin.html' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'admin.html'));
+  if (p === '/admin' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'admin.html'));
 
   // ---- 员工：配置 ----
   if (p === '/api/config' && req.method === 'GET') return sendJson(res, 200, publicConfig());
@@ -129,7 +137,8 @@ const server = http.createServer((req, res) => {
   if (p === '/api/admin/login' && req.method === 'POST') {
     return readBody(req, (err, b) => {
       if (err) return sendJson(res, 400, { error: '数据格式错误' });
-      if (String(b.password) !== DATA.config.adminPassword) return sendJson(res, 401, { error: '管理员密码错误' });
+      const pw = process.env.ADMIN_PASSWORD || DATA.config.adminPassword;
+      if (String(b.password) !== pw) return sendJson(res, 401, { error: '管理员密码错误' });
       const token = crypto.randomBytes(24).toString('hex');
       adminTokens.add(token);
       DATA.adminTokens = Array.from(adminTokens).slice(-20);
@@ -246,4 +255,5 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': 
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('排班系统已启动: http://localhost:' + PORT);
+  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD || DATA.config.adminPassword) + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 中修改）');
 });
