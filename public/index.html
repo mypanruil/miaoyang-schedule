@@ -47,6 +47,8 @@
   .month-nav button{width:32px;height:32px;padding:0;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:6px;font-size:16px;line-height:1}
   .month-nav button:hover{background:#f3f4f6}
   .month-nav span{min-width:90px;text-align:center;font-weight:600;color:var(--txt)}
+  .month-picker{display:flex;gap:8px}
+  .month-picker select{flex:1;min-width:0}
 
   .status-bar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;flex-wrap:wrap;gap:10px}
   .rest-count{font-size:15px;color:var(--txt)}
@@ -128,10 +130,9 @@
         </div>
         <div class="field sm">
           <label>排班月份</label>
-          <div class="month-nav">
-            <button onclick="changeEmpMonth(-1)">‹</button>
-            <span id="empMonthLabel">2026年8月</span>
-            <button onclick="changeEmpMonth(1)">›</button>
+          <div class="month-picker">
+            <select id="empYear" onchange="onEmpMonthChange()"></select>
+            <select id="empMonth" onchange="onEmpMonthChange()"></select>
           </div>
         </div>
         <div class="actions">
@@ -182,7 +183,10 @@
         <div class="row">
           <div class="field sm">
             <label>查看月份</label>
-            <select id="admMonth" onchange="admLoad()"></select>
+            <div class="month-picker">
+              <select id="admYear" onchange="admLoad()"></select>
+              <select id="admMonth" onchange="admLoad()"></select>
+            </div>
           </div>
           <div class="actions">
             <button class="ghost" onclick="admLoad()">刷新</button>
@@ -252,8 +256,8 @@ async function loadConfig(){
   const sel=document.getElementById('empSel');sel.innerHTML='';
   CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
   sel.onchange=updatePinBox; updatePinBox();
-  fillMonths(document.getElementById('admMonth'),admState.month);
-  updateEmpMonthLabel();
+  fillYearMonth('emp',empState.month);
+  fillYearMonth('adm',admState.month);
   if(admState.token)try{await api('/api/admin/data?token='+admState.token);showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
 }
 function updatePinBox(){
@@ -261,10 +265,19 @@ function updatePinBox(){
   const e=CONFIG.employees.find(x=>x.name===sel.value);
   document.getElementById('pinBox').classList.toggle('hidden',!e||!e.hasPin);
 }
-function fillMonths(sel,cur){
-  sel.innerHTML='';
-  const now=new Date();
-  for(let i=-1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);const m=curMonth(d);const o=document.createElement('option');o.value=m;o.textContent=monthLabel(m);if(m===cur)o.selected=true;sel.appendChild(o);}
+function fillYearMonth(prefix,cur){
+  const [cy,cm]=cur.split('-').map(Number);
+  const sy=document.getElementById(prefix+'Year');
+  const sm=document.getElementById(prefix+'Month');
+  const base=new Date().getFullYear();
+  sy.innerHTML='';sm.innerHTML='';
+  for(let y=base-5;y<=base+25;y++){const o=document.createElement('option');o.value=y;o.textContent=y+'年';if(y===cy)o.selected=true;sy.appendChild(o);}
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=String(m).padStart(2,'0');o.textContent=m+'月';if(m===cm)o.selected=true;sm.appendChild(o);}
+}
+function getYearMonth(prefix){
+  const y=document.getElementById(prefix+'Year').value;
+  const m=document.getElementById(prefix+'Month').value;
+  return y+'-'+m;
 }
 function switchTab(t){
   document.getElementById('tabEmp').classList.toggle('active',t==='emp');
@@ -274,23 +287,10 @@ function switchTab(t){
 }
 
 /* ---------- 员工端 ---------- */
-const monthsPool=[];
-function buildMonthsPool(){
-  monthsPool.length=0;
-  const now=new Date();
-  for(let i=-1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);monthsPool.push(curMonth(d));}
-}
-function changeEmpMonth(delta){
-  buildMonthsPool();
-  let idx=monthsPool.indexOf(empState.month);
-  if(idx<0)idx=monthsPool.findIndex(m=>m>=curMonth(new Date()));
-  idx=Math.max(0,Math.min(monthsPool.length-1,idx+delta));
-  empState.month=monthsPool[idx];
-  updateEmpMonthLabel();
-}
-function updateEmpMonthLabel(){document.getElementById('empMonthLabel').textContent=monthLabel(empState.month);}
+function onEmpMonthChange(){empState.month=getYearMonth('emp');}
 function empClear(){empState.schedule={};renderEmpCal();showMsg('empMsg','已清空，请重新选择','info');}
 async function empLoad(){
+  empState.month=getYearMonth('emp');
   const emp=document.getElementById('empSel').value;
   try{
     const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
@@ -346,7 +346,7 @@ async function admLoad(){
   try{
     const d=await api('/api/admin/data?token='+admState.token);
     admState.data=d;
-    const m=document.getElementById('admMonth').value;admState.month=m;
+    const m=getYearMonth('adm');admState.month=m;
     if(!d.schedules[m])d.schedules[m]={};
     admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
     renderAdmGrid();
