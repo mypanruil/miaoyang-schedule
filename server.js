@@ -101,6 +101,7 @@ const server = http.createServer((req, res) => {
   if (p === '/' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'index.html'));
   if (p.startsWith('/static/') && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, path.basename(p)));
   if (p === '/admin.html' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'admin.html'));
+  if (p === '/admin' && req.method === 'GET') return sendFile(res, path.join(PUBLIC_DIR, 'admin.html'));
 
   // ---- 员工：配置 ----
   if (p === '/api/config' && req.method === 'GET') return sendJson(res, 200, publicConfig());
