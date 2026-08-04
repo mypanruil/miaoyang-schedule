@@ -256,6 +256,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ---- 管理员：清除员工排班记录 ----
+  if (p === '/api/admin/clear' && req.method === 'POST') {
+    return readBody(req, (err, b) => {
+      if (err) return sendJson(res, 400, { error: '数据格式错误' });
+      const token = b.token || req.headers['x-admin-token'];
+      if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
+      const emp = b.emp;
+      if (!emp) return sendJson(res, 400, { error: '缺少员工' });
+      let removed = 0;
+      if (b.allMonths) {
+        for (const m of Object.keys(DATA.schedules)) {
+          if (DATA.schedules[m] && DATA.schedules[m][emp]) { delete DATA.schedules[m][emp]; removed++; }
+        }
+        if (DATA.submitCount) for (const m of Object.keys(DATA.submitCount)) { if (DATA.submitCount[m] && DATA.submitCount[m][emp]) delete DATA.submitCount[m][emp]; }
+        delete DATA.lastSubmitted[emp];
+      } else if (b.month) {
+        if (DATA.schedules[b.month] && DATA.schedules[b.month][emp]) { delete DATA.schedules[b.month][emp]; removed++; }
+        if (DATA.submitCount && DATA.submitCount[b.month] && DATA.submitCount[b.month][emp]) delete DATA.submitCount[b.month][emp];
+        if (DATA.lastSubmitted) delete DATA.lastSubmitted[emp];
+      } else {
+        return sendJson(res, 400, { error: '缺少月份（或未指定全部月份）' });
+      }
+      saveData(DATA);
+      return sendJson(res, 200, { ok: true, removed });
+    });
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ error: 'not found' }));
 });
