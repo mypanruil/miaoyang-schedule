@@ -3,142 +3,198 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>徐州妙漾医疗美容 · 员工排班表</title>
+<title>徐州妙漾医疗美容 · 员工排班系统</title>
 <style>
   :root{
-    --bg:#eef1f6;--panel:#ffffff;--line:#dde3ec;--txt:#1f2a37;--mut:#788796;
-    --accent:#2563eb;--ok:#16a34a;--warn:#d97706;--err:#dc2626;
-    --early:#2563eb;--late:#d97706;--rest:#dc2626;
-    --earlybg:#e7f0ff;--latebg:#fff3df;--restbg:#ffe9e9;
+    --primary:#2563eb;--primary-dark:#1d4ed8;
+    --bg:#f0f2f5;--panel:#ffffff;--line:#e5e7eb;--txt:#1f2937;--mut:#6b7280;
+    --ok:#16a34a;--warn:#d97706;--err:#dc2626;
+    --early:#2563eb;--late:#d97706;--rest:#9ca3af;
+    --earlybg:#eff6ff;--latebg:#fff7ed;--restbg:#f3f4f6;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
-  .wrap{max-width:1080px;margin:0 auto;padding:16px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-  h1{font-size:19px;margin:0;color:var(--txt)}
-  .tabs{display:flex;gap:6px}
-  .tab{padding:9px 16px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--mut);cursor:pointer;font-size:14px;font-weight:600}
-  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
-  label{font-size:13px;color:var(--mut);display:block;margin:10px 0 5px}
-  select,input{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:15px}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .row>*{flex:1;min-width:130px}
-  button{padding:11px 18px;border:none;border-radius:9px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  .topbar{background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;padding:14px 0;box-shadow:0 2px 6px rgba(37,99,235,.25)}
+  .topbar-inner{max-width:1100px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand-title{font-size:20px;font-weight:700;letter-spacing:.3px}
+  .brand-sub{font-size:12px;opacity:.85;margin-top:2px}
+  .tabs{display:flex;gap:8px}
+  .tab{padding:8px 18px;border:1px solid rgba(255,255,255,.45);border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:.15s}
+  .tab.active{background:#fff;color:var(--primary);border-color:#fff}
+  .tab:not(.active):hover{background:rgba(255,255,255,.12)}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  .card{background:var(--panel);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px}
+  .card-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-title .meta{font-size:13px;color:var(--mut);font-weight:400}
+
+  label{font-size:13px;color:var(--mut);display:block;margin-bottom:5px}
+  select,input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:14px;outline:none}
+  select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+  button{padding:10px 18px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+  button:hover{background:var(--primary-dark)}
+  button:disabled{background:#cbd5e1;cursor:not-allowed}
   button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
-  button.ok{background:var(--ok)} button.warn{background:var(--warn)}
-  .msg{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:9px;display:none}
-  .msg.info{background:#e8f0fe;color:#1d4ed8;display:block}
-  .msg.err{background:#fde8e8;color:#b91c1c;display:block}
-  .msg.ok{background:#e7f7ec;color:#15803d;display:block}
-  /* 员工周历 */
-  .cal{margin-top:14px;overflow-x:auto}
-  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;min-width:520px}
-  .wd{text-align:center;font-size:12px;color:var(--mut);padding:4px 0;font-weight:600}
-  .cell{border:1px solid var(--line);border-radius:10px;min-height:62px;padding:6px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;background:#fff;transition:.12s;user-select:none}
-  .cell:hover{border-color:var(--accent)}
-  .cell.empty{background:transparent;border:none;cursor:default}
-  .cell .d{font-size:13px;color:var(--mut)}
-  .cell .v{font-size:13px;font-weight:700;text-align:center;padding:4px 0;border-radius:7px}
-  .cell.early{background:var(--earlybg);border-color:#bcd3ff}
-  .cell.early .v{color:var(--early);background:#fff}
-  .cell.late{background:var(--latebg);border-color:#f0d6a8}
-  .cell.late .v{color:var(--late);background:#fff}
-  .cell.rest{background:var(--restbg);border-color:#f3bcbc}
-  .cell.rest .v{color:var(--rest);background:#fff}
-  .rest-count{font-size:15px;margin-top:12px;font-weight:600}
-  .rest-count b{color:var(--ok)}
+  button.ghost:hover{background:#f9fafb}
+  button.ok{background:var(--ok)} button.ok:hover{background:#15803d}
+
+  .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .row .field{flex:1;min-width:140px}
+  .row .field.sm{flex:0 0 110px}
+  .row .actions{flex:0 0 auto;display:flex;gap:8px}
+
+  .month-nav{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}
+  .month-nav button{width:32px;height:32px;padding:0;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:6px;font-size:16px;line-height:1}
+  .month-nav button:hover{background:#f3f4f6}
+  .month-nav span{min-width:90px;text-align:center;font-weight:600;color:var(--txt)}
+
+  .status-bar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;flex-wrap:wrap;gap:10px}
+  .rest-count{font-size:15px;color:var(--txt)}
+  .rest-count b{color:var(--primary);font-size:18px}
   .rest-count.bad b{color:var(--err)}
-  .legend{font-size:13px;color:var(--mut);margin-top:10px;display:flex;gap:16px;flex-wrap:wrap}
-  .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
-  .lock{background:#fff7e8;color:#92400e;padding:10px 12px;border-radius:9px;margin-top:10px;font-size:13px;border:1px solid #f4d9a6}
-  .muted{color:var(--mut);font-size:13px}
-  /* 管理员网格 */
-  .agrid{overflow-x:auto;margin-top:12px}
-  table{border-collapse:collapse;width:100%;min-width:620px}
+  .hint{font-size:12px;color:var(--mut)}
+
+  .legend{font-size:13px;color:var(--mut);display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  .cal{margin-top:6px;overflow-x:auto}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;min-width:580px}
+  .wd{text-align:center;font-size:13px;color:var(--mut);padding:6px 0;font-weight:600}
+  .day-cell{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff;min-height:78px;display:flex;flex-direction:column;gap:6px}
+  .day-cell.empty{background:transparent;border:none}
+  .day-cell .day-num{font-size:14px;font-weight:700;color:var(--txt)}
+  .day-cell select{font-size:13px;padding:6px 8px;border-radius:6px}
+
+  .submit-area{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .submit-area button{padding:12px 32px;font-size:15px}
+  .submit-tip{font-size:12px;color:var(--mut);margin-top:8px}
+
+  .msg{font-size:13px;margin-top:12px;padding:10px 12px;border-radius:8px;display:none}
+  .msg.info{background:#eff6ff;color:#1d4ed8;display:block}
+  .msg.err{background:#fee2e2;color:#b91c1c;display:block}
+  .msg.ok{background:#dcfce7;color:#166534;display:block}
+
+  /* 管理员 */
+  .agrid{overflow-x:auto;margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:640px}
   th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
-  th{background:#f3f6fb;color:var(--mut);font-weight:600}
-  th.emp,td.emp{position:sticky;left:0;background:#f7f9fc;text-align:left;padding-left:10px;min-width:110px;z-index:2}
+  th{background:#f3f4f6;color:var(--mut);font-weight:600}
+  th.emp,td.emp{position:sticky;left:0;background:#f9fafb;text-align:left;padding-left:10px;min-width:110px;z-index:2}
   td.emp.bad{color:var(--err);font-weight:700}
-  .cell{height:30px}
   .gcell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
   .gcell.early{background:var(--earlybg);color:var(--early)}
   .gcell.late{background:var(--latebg);color:var(--late)}
   .gcell.rest{background:var(--restbg);color:var(--rest)}
+
   /* 设置弹窗 */
   .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
-  .overlay .card{max-width:540px;width:100%;max-height:90vh;overflow:auto}
+  .overlay .card{max-width:560px;width:100%;max-height:90vh;overflow:auto}
   .emp-row{display:flex;gap:8px;margin:6px 0}
   .emp-row input{flex:1}
   .hidden{display:none}
-  footer{font-size:12px;color:var(--mut);text-align:center;margin:18px 0}
-  a{color:var(--accent)}
+  footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1 id="companyTitle">员工排班表</h1>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <div class="brand-title">徐州妙漾医疗美容 · 员工排班系统</div>
+      <div class="brand-sub" id="brandSub">徐州妙漾医疗美容有限公司</div>
+    </div>
     <div class="tabs">
       <div class="tab active" id="tabEmp" onclick="switchTab('emp')">员工填写</div>
       <div class="tab" id="tabAdm" onclick="switchTab('adm')">管理员</div>
     </div>
-  </header>
+  </div>
+</div>
 
+<div class="wrap">
   <!-- 员工端 -->
   <section id="secEmp">
     <div class="card">
-      <div class="row">
-        <div><label>选择员工</label><select id="empSel"></select></div>
-        <div id="pinBox" class="hidden"><label>PIN 码</label><input id="empPin" type="password" placeholder="请输入 PIN"></div>
-        <div><label>月份</label><select id="empMonth"></select></div>
+      <div class="card-title">
+        员工自助排班
+        <span class="meta" id="empMeta">早班 09:00-17:00 &nbsp; 晚班 10:00-19:00 &nbsp; 每月休息 5 天</span>
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="empLoad()">加载我的排班</button>
-        <button class="ghost" onclick="empClear()">清空重填</button>
+      <div class="row">
+        <div class="field">
+          <label>选择姓名</label>
+          <select id="empSel"></select>
+        </div>
+        <div class="field" id="pinBox">
+          <label>验证 PIN（如已设置）</label>
+          <input id="empPin" type="password" placeholder="未设置可留空">
+        </div>
+        <div class="field sm">
+          <label>排班月份</label>
+          <div class="month-nav">
+            <button onclick="changeEmpMonth(-1)">‹</button>
+            <span id="empMonthLabel">2026年8月</span>
+            <button onclick="changeEmpMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button onclick="empLoad()">加载我的排班</button>
+          <button class="ghost" onclick="empClear()">清空重填</button>
+        </div>
       </div>
       <div id="empMsg" class="msg"></div>
-      <div id="empLock" class="lock hidden"></div>
-      <div class="cal" id="empCal"></div>
-      <div class="rest-count" id="empRest"></div>
+
+      <div class="status-bar">
+        <div class="rest-count" id="empRest">已选休息 <b>0</b> / 5 天</div>
+        <div class="hint" id="empHint">提交后可随时修改，重新提交即覆盖</div>
+      </div>
       <div class="legend">
         <span><span class="dot" style="background:var(--early)"></span>早班 <span id="lgEarly"></span></span>
         <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
         <span><span class="dot" style="background:var(--rest)"></span>休息</span>
       </div>
-      <div style="margin-top:14px"><button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button></div>
-      <p class="muted" style="margin-top:10px">点击日期格子在 早 / 晚 / 休 之间切换；每月休息须正好 <b id="needRest">5</b> 天，不满或超出不能提交。提交后可随时重新提交覆盖。</p>
+
+      <div class="cal" id="empCal"></div>
+
+      <div class="submit-area">
+        <button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button>
+        <div class="submit-tip">休息天数须正好为 <b id="needRest">5</b> 天，不满或超出不能提交。提交后可随时重新提交覆盖。</div>
+      </div>
     </div>
   </section>
 
   <!-- 管理员端 -->
   <section id="secAdm" class="hidden">
     <div id="admGate" class="card">
-      <h3 style="margin-top:0">管理员验证</h3>
-      <label>管理员密码</label><input id="admPwd" type="password" placeholder="默认 admin123">
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <button onclick="admLogin()">进入</button>
-        <span class="muted" style="align-self:center">默认密码 admin123，登录后可在设置中修改</span>
+      <div class="card-title">管理员验证</div>
+      <div class="row" style="max-width:420px">
+        <div class="field">
+          <label>管理员密码</label>
+          <input id="admPwd" type="password" placeholder="默认 admin123">
+        </div>
+        <div class="actions">
+          <button onclick="admLogin()">进入</button>
+        </div>
       </div>
       <div id="admGateMsg" class="msg"></div>
     </div>
 
     <div id="admMain" class="hidden">
       <div class="card">
+        <div class="card-title">管理员汇总</div>
         <div class="row">
-          <div><label>查看月份</label><select id="admMonth" onchange="admLoad()"></select></div>
-          <div style="align-self:flex-end;display:flex;gap:8px">
+          <div class="field sm">
+            <label>查看月份</label>
+            <select id="admMonth" onchange="admLoad()"></select>
+          </div>
+          <div class="actions">
             <button class="ghost" onclick="admLoad()">刷新</button>
             <button class="ghost" onclick="openSettings()">基础设置</button>
           </div>
         </div>
         <div id="admMsg" class="msg"></div>
         <div class="agrid" id="admGrid"></div>
-        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="ok" onclick="admSaveAll()">保存排班</button>
           <button onclick="admExport()">导出 PDF</button>
         </div>
-        <p class="muted" style="margin-top:10px">管理员可在此直接修改任意员工排班并保存；点「导出 PDF」在打印窗口选「另存为 PDF」即可。</p>
       </div>
     </div>
   </section>
@@ -149,19 +205,19 @@
 <!-- 设置弹窗 -->
 <div id="setOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
   <div class="card">
-    <h3 style="margin-top:0">基础设置</h3>
+    <div class="card-title">基础设置</div>
     <label>公司名称</label><input id="setCompany">
     <div class="row">
-      <div><label>早班时间</label><input id="setEarly"></div>
-      <div><label>晚班时间</label><input id="setLate"></div>
+      <div class="field"><label>早班时间</label><input id="setEarly"></div>
+      <div class="field"><label>晚班时间</label><input id="setLate"></div>
     </div>
     <div class="row">
-      <div><label>每月休息天数</label><input id="setRest" type="number"></div>
+      <div class="field sm"><label>每月休息天数</label><input id="setRest" type="number"></div>
     </div>
-    <label>管理员密码(留空不修改)</label><input id="setPwd" type="password" placeholder="新密码">
+    <label>管理员密码（留空不修改）</label><input id="setPwd" type="password" placeholder="新密码">
     <label>员工名单（姓名 / PIN，PIN 可空）</label>
     <div id="setEmps"></div>
-    <div style="margin-top:10px;display:flex;gap:8px">
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
       <button class="ok" onclick="saveSettings()">保存设置</button>
       <button class="ghost" onclick="closeSettings()">关闭</button>
@@ -179,25 +235,31 @@ const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Da
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
 function daysIn(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
-function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;} // 周一开头
+function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;}
 
 async function api(path,opts){opts=opts||{};const r=await fetch(API+path,Object.assign({headers:{'Content-Type':'application/json'}},opts));let j=null;try{j=await r.json();}catch(e){}if(!r.ok)throw (j&&j.error)||('错误'+r.status);return j;}
 function showMsg(id,text,kind){const el=document.getElementById(id);el.className='msg '+(kind||'info');el.textContent=text;}
 
 async function loadConfig(){
   CONFIG=await api('/api/config');
-  document.getElementById('companyTitle').textContent=CONFIG.company+' · 排班表';
+  document.getElementById('brandSub').textContent=CONFIG.company;
+  document.getElementById('empMeta').innerHTML='早班 '+CONFIG.earlyShift+' &nbsp; 晚班 '+CONFIG.lateShift+' &nbsp; 每月休息 '+CONFIG.restDaysPerMonth+' 天';
   document.getElementById('lgEarly').textContent=CONFIG.earlyShift;
   document.getElementById('lgLate').textContent=CONFIG.lateShift;
   document.getElementById('needRest').textContent=CONFIG.restDaysPerMonth;
   document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
+
   const sel=document.getElementById('empSel');sel.innerHTML='';
   CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
-  sel.onchange=()=>{document.getElementById('pinBox').classList.toggle('hidden',!CONFIG.employees.find(e=>e.name===sel.value).hasPin);};
-  document.getElementById('pinBox').classList.toggle('hidden',!CONFIG.employees.find(e=>e.name===sel.value).hasPin);
-  fillMonths(document.getElementById('empMonth'),empState.month);
+  sel.onchange=updatePinBox; updatePinBox();
   fillMonths(document.getElementById('admMonth'),admState.month);
-  if(admState.token)try{const d=await api('/api/admin/data?token='+admState.token);if(d.config)showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
+  updateEmpMonthLabel();
+  if(admState.token)try{await api('/api/admin/data?token='+admState.token);showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
+}
+function updatePinBox(){
+  const sel=document.getElementById('empSel');
+  const e=CONFIG.employees.find(x=>x.name===sel.value);
+  document.getElementById('pinBox').classList.toggle('hidden',!e||!e.hasPin);
 }
 function fillMonths(sel,cur){
   sel.innerHTML='';
@@ -211,24 +273,36 @@ function switchTab(t){
   document.getElementById('secAdm').classList.toggle('hidden',t!=='adm');
 }
 
-/* ---------- 员工端（周历） ---------- */
-function empClear(){empState.schedule={};renderEmpCal();}
+/* ---------- 员工端 ---------- */
+const monthsPool=[];
+function buildMonthsPool(){
+  monthsPool.length=0;
+  const now=new Date();
+  for(let i=-1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);monthsPool.push(curMonth(d));}
+}
+function changeEmpMonth(delta){
+  buildMonthsPool();
+  let idx=monthsPool.indexOf(empState.month);
+  if(idx<0)idx=monthsPool.findIndex(m=>m>=curMonth(new Date()));
+  idx=Math.max(0,Math.min(monthsPool.length-1,idx+delta));
+  empState.month=monthsPool[idx];
+  updateEmpMonthLabel();
+}
+function updateEmpMonthLabel(){document.getElementById('empMonthLabel').textContent=monthLabel(empState.month);}
+function empClear(){empState.schedule={};renderEmpCal();showMsg('empMsg','已清空，请重新选择','info');}
 async function empLoad(){
   const emp=document.getElementById('empSel').value;
-  const month=document.getElementById('empMonth').value;empState.month=month;
   try{
-    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+month);
+    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
     empState.schedule=r.schedule||{};
-    if(r.lastEdit){const lock=document.getElementById('empLock');lock.classList.remove('hidden');lock.textContent='上次提交时间：'+new Date(r.lastEdit).toLocaleString('zh-CN')+'（可随时修改，重新提交即覆盖）';}
     renderEmpCal();
-    showMsg('empMsg','已加载 '+emp+' 的排班','ok');
+    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班','ok');
   }catch(e){showMsg('empMsg',e,'err');}
 }
-function cycle(v){return v==='early'?'late':v==='late'?'rest':'early';}
-function cellHtml(d,v){
-  const cls=v?'cell '+v:'cell';
-  const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';
-  return `<div class="${cls}" onclick="empSet(${d})"><div class="d">${d}</div><div class="v">${t}</div></div>`;
+function optHtml(d){
+  const v=empState.schedule[d]||'';
+  const opts=[{k:'',t:'未排'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
+  return `<select onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
   const n=daysIn(empState.month);
@@ -236,28 +310,28 @@ function renderEmpCal(){
   const wd=['一','二','三','四','五','六','日'];
   let h='<div class="calgrid">';
   wd.forEach(w=>h+=`<div class="wd">${w}</div>`);
-  for(let i=0;i<off;i++)h+='<div class="cell empty"></div>';
-  for(let d=1;d<=n;d++)h+=cellHtml(d,empState.schedule[d]||'');
+  for(let i=0;i<off;i++)h+='<div class="day-cell empty"></div>';
+  for(let d=1;d<=n;d++){
+    h+=`<div class="day-cell"><div class="day-num">${d}</div>${optHtml(d)}</div>`;
+  }
   const tail=(7-(off+n)%7)%7;
-  for(let i=0;i<tail;i++)h+='<div class="cell empty"></div>';
+  for(let i=0;i<tail;i++)h+='<div class="day-cell empty"></div>';
   h+='</div>';
   document.getElementById('empCal').innerHTML=h;
   const rest=Object.values(empState.schedule).filter(v=>v==='rest').length;
   const need=CONFIG.restDaysPerMonth;
-  const rc=document.getElementById('empRest');rc.className='rest-count'+(rest!==need?' bad':'');
-  rc.innerHTML='休息天数：<b>'+rest+'</b> / 需 '+need+' 天'+(rest!==need?(' （还差 '+(need-rest)+' 天）'):'');
+  const rc=document.getElementById('empRest');
+  rc.className='rest-count'+(rest!==need?' bad':'');
+  rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest!==need?('（还差 '+(need-rest)+' 天）'):'');
   document.getElementById('empSubmit').disabled=rest!==need;
 }
-function empSet(d){empState.schedule[d]=cycle(empState.schedule[d]||'');renderEmpCal();}
+function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
   const emp=document.getElementById('empSel').value;
-  const month=empState.month;
   const pin=document.getElementById('empPin').value||'';
   try{
-    const r=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month,schedule:empState.schedule})});
+    await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
-    const lock=document.getElementById('empLock');lock.classList.remove('hidden');
-    lock.textContent='上次提交时间：'+new Date().toLocaleString('zh-CN')+'（可随时修改）';
   }catch(e){showMsg('empMsg',e,'err');}
 }
 
@@ -298,6 +372,7 @@ function renderAdmGrid(){
   document.getElementById('admGrid').innerHTML=h;
 }
 function admSet(name,d){admState.draft[name]=admState.draft[name]||{};admState.draft[name][d]=cycle(admState.draft[name][d]||'');renderAdmGrid();}
+function cycle(v){return v==='early'?'late':v==='late'?'rest':v==='rest'?'early':'';}
 async function admSaveAll(){
   try{
     for(const name of Object.keys(admState.draft)){
@@ -331,6 +406,7 @@ async function saveSettings(){
   catch(e){showMsg('setMsg',e,'err');}
 }
 
+buildMonthsPool();
 loadConfig().catch(e=>showMsg('empMsg',e,'err'));
 </script>
 </body>
