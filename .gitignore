@@ -1,0 +1,7 @@
+data/
+tmp/
+deploy/
+node_modules/
+*.log
+*.bat
+server.log

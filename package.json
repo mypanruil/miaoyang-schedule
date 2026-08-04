@@ -1,0 +1,13 @@
+{
+  "name": "miaoyang-schedule",
+  "version": "1.0.0",
+  "description": "徐州妙漾医疗美容有限公司 员工排班系统（后端版）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}

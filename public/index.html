@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>徐州妙漾医疗美容 · 员工排班表</title>
+<style>
+  :root{
+    --bg:#0f1419;--panel:#1a212b;--panel2:#222c38;--line:#2c3744;--txt:#e6edf3;--mut:#8b98a5;
+    --accent:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--rest:#ef4444;--early:#3b82f6;--late:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  h1{font-size:18px;margin:0}
+  .tabs{display:flex;gap:6px}
+  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--mut);cursor:pointer;font-size:14px}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  label{font-size:13px;color:var(--mut);display:block;margin:8px 0 4px}
+  select,input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:15px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:120px}
+  button{padding:10px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
+  button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  button.ok{background:var(--ok)} button.warn{background:var(--warn)} button.err{background:var(--err)}
+  .msg{font-size:13px;margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
+  .msg.info{background:#1e2a3a;color:#9cc4ff;display:block}
+  .msg.err{background:#3a1e1e;color:#ffb4b4;display:block}
+  .msg.ok{background:#16331f;color:#9ff0b6;display:block}
+  /* calendar */
+  .cal{overflow-x:auto;margin-top:10px}
+  table{border-collapse:collapse;width:100%;min-width:560px}
+  th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
+  th.emp,td.emp{position:sticky;left:0;background:var(--panel2);text-align:left;padding-left:8px;min-width:96px;z-index:2}
+  .day .d{font-size:11px;color:var(--mut)}
+  .cell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
+  .cell.early{background:rgba(59,130,246,.22);color:#bcd8ff}
+  .cell.late{background:rgba(245,158,11,.22);color:#ffd99a}
+  .cell.rest{background:rgba(239,68,68,.22);color:#ffb4b4}
+  .rest-count{font-size:14px;margin-top:8px}
+  .rest-count b{color:var(--ok)}
+  .rest-count.bad b{color:var(--err)}
+  .legend{font-size:12px;color:var(--mut);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+  .lock{background:#3a2a10;color:#ffd99a;padding:10px;border-radius:8px;margin-top:8px;font-size:13px}
+  .pill{font-size:11px;color:var(--mut)}
+  footer{font-size:12px;color:var(--mut);text-align:center;margin:16px 0}
+  a{color:var(--accent)}
+  .muted{color:var(--mut);font-size:13px}
+  /* admin grid */
+  .agrid{overflow-x:auto;margin-top:10px}
+  .settings label{font-size:12px}
+  .emp-row{display:flex;gap:6px;margin:4px 0}
+  .emp-row input{flex:1}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
+  .overlay .card{max-width:520px;width:100%;max-height:90vh;overflow:auto}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="companyTitle">员工排班表</h1>
+    <div class="tabs">
+      <div class="tab active" id="tabEmp" onclick="switchTab('emp')">员工填写</div>
+      <div class="tab" id="tabAdm" onclick="switchTab('adm')">管理员</div>
+    </div>
+  </header>
+
+  <!-- 员工端 -->
+  <section id="secEmp">
+    <div class="card">
+      <div class="row">
+        <div><label>选择员工</label><select id="empSel"></select></div>
+        <div id="pinBox" class="hidden"><label>PIN 码</label><input id="empPin" type="password" placeholder="请输入 PIN"></div>
+        <div><label>月份</label><select id="empMonth"></select></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="empLoad()">加载我的排班</button>
+        <button class="ghost" onclick="empClear()">清空</button>
+      </div>
+      <div id="empMsg" class="msg"></div>
+      <div id="empLock" class="lock hidden"></div>
+      <div class="cal" id="empCal"></div>
+      <div class="rest-count" id="empRest"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--early)"></span>早班 <span id="lgEarly"></span></span>
+        <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
+        <span><span class="dot" style="background:var(--rest)"></span>休息</span>
+      </div>
+      <div style="margin-top:12px"><button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button></div>
+      <p class="muted">提示：点击日期单元格在 早/晚/休 之间切换；休息须正好 <b id="needRest">5</b> 天。提交后本周（7天）内不可再改。</p>
+    </div>
+  </section>
+
+  <!-- 管理员端 -->
+  <section id="secAdm" class="hidden">
+    <div id="admGate" class="card">
+      <h3 style="margin-top:0">管理员验证</h3>
+      <label>管理员密码</label><input id="admPwd" type="password" placeholder="默认 admin123">
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button onclick="admLogin()">进入</button>
+        <span class="muted" style="align-self:center">默认密码 admin123，登录后可在设置中修改</span>
+      </div>
+      <div id="admGateMsg" class="msg"></div>
+    </div>
+
+    <div id="admMain" class="hidden">
+      <div class="card">
+        <div class="row">
+          <div><label>查看月份</label><select id="admMonth" onchange="admLoad()"></select></div>
+          <div style="align-self:flex-end;display:flex;gap:8px">
+            <button class="ghost" onclick="admLoad()">刷新</button>
+            <button class="ghost" onclick="openSettings()">基础设置</button>
+          </div>
+        </div>
+        <div id="admMsg" class="msg"></div>
+        <div class="agrid" id="admGrid"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="ok" onclick="admSaveAll()">保存排班</button>
+          <button onclick="admExport()">导出 PDF</button>
+        </div>
+        <p class="muted">管理员可在此直接修改任意员工排班并保存；点「导出 PDF」在打印窗口选「另存为 PDF」即可。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer id="footNote"></footer>
+</div>
+
+<!-- 设置弹窗 -->
+<div id="setOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
+  <div class="card settings">
+    <h3 style="margin-top:0">基础设置</h3>
+    <label>公司名称</label><input id="setCompany">
+    <div class="row">
+      <div><label>早班时间</label><input id="setEarly"></div>
+      <div><label>晚班时间</label><input id="setLate"></div>
+    </div>
+    <div class="row">
+      <div><label>每月休息天数</label><input id="setRest" type="number"></div>
+      <div><label>修改锁定(天)</label><input id="setLock" type="number"></div>
+    </div>
+    <label>管理员密码(留空不修改)</label><input id="setPwd" type="password" placeholder="新密码">
+    <label>员工名单（姓名 / PIN，PIN 可空）</label>
+    <div id="setEmps"></div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
+      <button class="ok" onclick="saveSettings()">保存设置</button>
+      <button class="ghost" onclick="closeSettings()">关闭</button>
+    </div>
+    <div id="setMsg" class="msg"></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let CONFIG = null;
+const empState = { month: curMonth(new Date()), schedule: {} };
+const admState = { token: localStorage.getItem('admToken') || '', month: curMonth(new Date()), data: { schedules: {} }, draft: {} };
+
+function curMonth(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabel(m){ const [y,mm]=m.split('-'); return y+'年'+Number(mm)+'月'; }
+function daysIn(m){ const [y,mm]=m.split('-').map(Number); return new Date(y,mm,0).getDate(); }
+function pad(n){ return String(n).padStart(2,'0'); }
+
+async function api(path, opts){ opts=opts||{}; const r=await fetch(API+path, Object.assign({headers:{'Content-Type':'application/json'}},opts)); let j=null; try{j=await r.json();}catch(e){} if(!r.ok) throw (j&&j.error)||('错误'+r.status); return j; }
+function showMsg(id,text,kind){ const el=document.getElementById(id); el.className='msg '+(kind||'info'); el.textContent=text; }
+
+async function loadConfig(){
+  CONFIG = await api('/api/config');
+  document.getElementById('companyTitle').textContent = CONFIG.company+' · 排班表';
+  document.getElementById('lgEarly').textContent = CONFIG.earlyShift;
+  document.getElementById('lgLate').textContent = CONFIG.lateShift;
+  document.getElementById('needRest').textContent = CONFIG.restDaysPerMonth;
+  document.getElementById('footNote').textContent = CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
+  // 员工下拉
+  const sel=document.getElementById('empSel'); sel.innerHTML='';
+  CONFIG.employees.forEach(e=>{ const o=document.createElement('option'); o.value=e.name; o.textContent=e.name; sel.appendChild(o); });
+  sel.onchange=()=>{ document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin); };
+  document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin);
+  // 月份下拉
+  fillMonths(document.getElementById('empMonth'), empState.month);
+  fillMonths(document.getElementById('admMonth'), admState.month);
+  if(admState.token) try{ const d=await api('/api/admin/data?token='+admState.token); if(d.config){ showAdm(); } }catch(e){ localStorage.removeItem('admToken'); admState.token=''; }
+}
+
+function fillMonths(sel, cur){
+  sel.innerHTML='';
+  const now=new Date();
+  for(let i=-1;i<=3;i++){ const d=new Date(now.getFullYear(), now.getMonth()+i, 1); const m=curMonth(d); const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); if(m===cur)o.selected=true; sel.appendChild(o); }
+}
+
+function switchTab(t){
+  document.getElementById('tabEmp').classList.toggle('active', t==='emp');
+  document.getElementById('tabAdm').classList.toggle('active', t==='adm');
+  document.getElementById('secEmp').classList.toggle('hidden', t!=='emp');
+  document.getElementById('secAdm').classList.toggle('hidden', t!=='adm');
+}
+
+/* ---------- 员工端 ---------- */
+function empClear(){ empState.schedule={}; renderEmpCal(); }
+async function empLoad(){
+  const emp=document.getElementById('empSel').value;
+  const month=document.getElementById('empMonth').value; empState.month=month;
+  try{
+    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+month);
+    empState.schedule=r.schedule||{};
+    const lock=document.getElementById('empLock');
+    if(r.locked){ lock.classList.remove('hidden'); lock.textContent='本周已提交，下次可修改时间：'+new Date(r.nextEdit).toLocaleString('zh-CN'); document.getElementById('empSubmit').disabled=true; }
+    else { lock.classList.add('hidden'); document.getElementById('empSubmit').disabled=false; }
+    renderEmpCal();
+    showMsg('empMsg','已加载'+emp+' 的排班','ok');
+  }catch(e){ showMsg('empMsg',e,'err'); }
+}
+function cycle(v){ return v==='early'?'late':v==='late'?'rest':'early'; }
+function renderEmpCal(){
+  const n=daysIn(empState.month);
+  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
+  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
+  h+='</tr></thead><tbody><tr><td class="emp">'+document.getElementById('empSel').value+'</td>';
+  for(let d=1;d<=n;d++){ const v=empState.schedule[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="empSet(${d})"><div class="${cls}">${t}</div></td>`; }
+  h+='</tr></tbody></table>';
+  document.getElementById('empCal').innerHTML=h;
+  const rest=Object.values(empState.schedule).filter(v=>v==='rest').length;
+  const need=CONFIG.restDaysPerMonth;
+  const rc=document.getElementById('empRest'); rc.className='rest-count'+(rest!==need?' bad':'');
+  rc.innerHTML='休息天数：<b>'+rest+'</b> / 需 '+need+' 天';
+  document.getElementById('empSubmit').disabled = rest!==need;
+}
+function empSet(d){ empState.schedule[d]=cycle(empState.schedule[d]||''); renderEmpCal(); }
+async function empSubmit(){
+  const emp=document.getElementById('empSel').value;
+  const month=empState.month;
+  const pin=document.getElementById('empPin').value||'';
+  try{
+    const r=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month,schedule:empState.schedule})});
+    showMsg('empMsg','提交成功！本周内不可再改，下次可改：'+new Date(r.nextEdit).toLocaleString('zh-CN'),'ok');
+    document.getElementById('empLock').classList.remove('hidden');
+    document.getElementById('empLock').textContent='本周已提交，下次可修改时间：'+new Date(r.nextEdit).toLocaleString('zh-CN');
+    document.getElementById('empSubmit').disabled=true;
+  }catch(e){ showMsg('empMsg',e,'err'); }
+}
+
+/* ---------- 管理员端 ---------- */
+function showAdm(){ document.getElementById('admGate').classList.add('hidden'); document.getElementById('admMain').classList.remove('hidden'); admLoad(); }
+async function admLogin(){
+  try{ const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:document.getElementById('admPwd').value})}); admState.token=r.token; localStorage.setItem('admToken',r.token); showAdm(); }
+  catch(e){ showMsg('admGateMsg',e,'err'); }
+}
+async function admLoad(){
+  if(!admState.token) return;
+  try{
+    const d=await api('/api/admin/data?token='+admState.token);
+    admState.data=d;
+    const m=document.getElementById('admMonth').value; admState.month=m;
+    if(!d.schedules[m]) d.schedules[m]={};
+    admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
+    renderAdmGrid();
+    showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+Object.keys(d.schedules[m]).length+' 人已提交）','ok');
+  }catch(e){ showMsg('admMsg',e,'err'); }
+}
+function renderAdmGrid(){
+  const names=CONFIG.employees.map(e=>e.name);
+  const n=daysIn(admState.month);
+  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
+  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
+  h+='</tr></thead><tbody>';
+  names.forEach(name=>{
+    const s=admState.draft[name]||{};
+    const rest=Object.values(s).filter(v=>v==='rest').length;
+    const bad=rest!==CONFIG.restDaysPerMonth;
+    h+=`<tr><td class="emp" style="${bad?'color:#ef4444':''}">${name}${bad?' ('+rest+')':''}</td>`;
+    for(let d=1;d<=n;d++){ const v=s[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="admSet('${name}',${d})"><div class="${cls}">${t}</div></td>`; }
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('admGrid').innerHTML=h;
+}
+function admSet(name,d){ admState.draft[name]=admState.draft[name]||{}; admState.draft[name][d]=cycle(admState.draft[name][d]||''); renderAdmGrid(); }
+async function admSaveAll(){
+  try{
+    await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:'__all__',schedule:admState.draft})});
+    // 逐人保存
+    for(const name of Object.keys(admState.draft)){
+      await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:name,schedule:admState.draft[name]})});
+    }
+    showMsg('admMsg','已保存 '+monthLabel(admState.month)+' 排班','ok');
+  }catch(e){ showMsg('admMsg',e,'err'); }
+}
+function admExport(){ window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month, '_blank'); }
+
+/* ---------- 设置 ---------- */
+async function openSettings(){
+  try{
+    const d=await api('/api/admin/data?token='+admState.token);
+    document.getElementById('setCompany').value=d.config.company;
+    document.getElementById('setEarly').value=d.config.earlyShift;
+    document.getElementById('setLate').value=d.config.lateShift;
+    document.getElementById('setRest').value=d.config.restDaysPerMonth;
+    document.getElementById('setLock').value=d.config.editLockDays;
+    document.getElementById('setPwd').value='';
+    const box=document.getElementById('setEmps'); box.innerHTML='';
+    d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
+    document.getElementById('setOverlay').classList.remove('hidden');
+  }catch(e){ showMsg('admMsg',e,'err'); }
+}
+function addEmpRow(name,pwd){ const box=document.getElementById('setEmps'); const row=document.createElement('div'); row.className='emp-row'; row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`; box.appendChild(row); }
+function closeSettings(){ document.getElementById('setOverlay').classList.add('hidden'); }
+async function saveSettings(){
+  const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
+  const cfg={ company:document.getElementById('setCompany').value, earlyShift:document.getElementById('setEarly').value, lateShift:document.getElementById('setLate').value, restDaysPerMonth:Number(document.getElementById('setRest').value), editLockDays:Number(document.getElementById('setLock').value), employees:emps, adminPassword:document.getElementById('setPwd').value };
+  try{ await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})}); showMsg('setMsg','设置已保存，正在刷新…','ok'); await loadConfig(); setTimeout(closeSettings,600); }
+  catch(e){ showMsg('setMsg',e,'err'); }
+}
+
+loadConfig().catch(e=>showMsg('empMsg',e,'err'));
+</script>
+</body>
+</html>
