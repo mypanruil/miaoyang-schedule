@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
   earlyShift: '09:00-17:00',
   lateShift: '10:00-19:00',
   restDaysPerMonth: 5,
+  maxModifyPerMonth: 5,
   adminPassword: 'MiaoYang@2026',
   employees: Array.from({ length: 12 }, (_, i) => ({ name: '员工' + String(i + 1).padStart(2, '0'), pin: '' }))
 };
@@ -29,10 +30,11 @@ function loadData() {
     if (!d.config.employees || !d.config.employees.length) d.config.employees = DEFAULT_CONFIG.employees;
     d.schedules = d.schedules || {};      // schedules[month][emp] = {day: 'early'|'late'|'rest'}
     d.lastSubmitted = d.lastSubmitted || {}; // lastSubmitted[emp] = ISO
+    d.submitCount = d.submitCount || {};      // submitCount[month][emp] = 总提交次数
     d.adminTokens = d.adminTokens || [];
     return d;
   } catch (e) {
-    const d = { config: DEFAULT_CONFIG, schedules: {}, lastSubmitted: {}, adminTokens: [] };
+    const d = { config: DEFAULT_CONFIG, schedules: {}, lastSubmitted: {}, adminTokens: [], submitCount: {} };
     saveData(d);
     return d;
   }
@@ -77,6 +79,7 @@ function publicConfig() {
     earlyShift: DATA.config.earlyShift,
     lateShift: DATA.config.lateShift,
     restDaysPerMonth: DATA.config.restDaysPerMonth,
+    maxModifyPerMonth: DATA.config.maxModifyPerMonth,
     employees: DATA.config.employees.map(e => ({ name: e.name, hasPin: !!(e.pin && e.pin.length) }))
   };
 }
@@ -91,6 +94,14 @@ function lockInfo(emp) {
   // 员工提交后可随时更改，不再锁定；仅记录最后提交时间供参考
   const last = DATA.lastSubmitted[emp];
   return { locked: false, lastEdit: last || null };
+}
+function modifyInfo(emp, month) {
+  const max = DATA.config.maxModifyPerMonth;
+  const count = (DATA.submitCount[month] && DATA.submitCount[month][emp]) || 0; // 总提交次数（首次+修改）
+  const modified = Math.max(0, count - 1); // 首次提交不算"修改"
+  const left = Math.max(0, max - modified); // 剩余修改次数
+  const locked = count >= 1 && left <= 0; // 已提交且次数用尽
+  return { count, modified, left, locked, max };
 }
 
 const server = http.createServer((req, res) => {
@@ -111,7 +122,8 @@ const server = http.createServer((req, res) => {
     const emp = url.searchParams.get('emp');
     const month = url.searchParams.get('month');
     const sch = (DATA.schedules[month] && DATA.schedules[month][emp]) || {};
-    return sendJson(res, 200, { schedule: sch, ...lockInfo(emp), restDays: countRest(sch) });
+    const mi = modifyInfo(emp, month);
+    return sendJson(res, 200, { schedule: sch, ...lockInfo(emp), restDays: countRest(sch), maxModify: mi.max, leftModify: mi.left, locked: mi.locked, submitted: mi.count >= 1 });
   }
 
   // ---- 员工：提交排班 ----
@@ -125,11 +137,31 @@ const server = http.createServer((req, res) => {
       if (empCfg.pin && empCfg.pin.length && String(pin) !== empCfg.pin) return sendJson(res, 403, { error: 'PIN 不正确' });
       const rest = countRest(schedule);
       if (rest > DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数不能超过 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
+      const mi = modifyInfo(emp, month);
+      if (mi.count >= 1 && mi.left <= 0) return sendJson(res, 400, { error: `本月修改次数已用完（共 ${mi.max} 次）` });
+      // 超期校验：整月已过则不可提交；当月只允许修改今天及之后的日期
+      const now = new Date();
+      const [yy, mm] = month.split('-').map(Number);
+      const curY = now.getFullYear(), curM = now.getMonth() + 1;
+      if (yy < curY || (yy === curY && mm < curM)) return sendJson(res, 400, { error: '该月排班已过期，不能修改' });
+      if (yy === curY && mm === curM) {
+        const today = now.getDate();
+        const prev = (DATA.schedules[month] && DATA.schedules[month][emp]) || {};
+        for (const k of Object.keys(schedule)) {
+          const dd = Number(k);
+          if (dd < today && prev[k] !== undefined && schedule[k] !== prev[k]) {
+            return sendJson(res, 400, { error: `已过期的日期（${mm}月${dd}日及之前）不能修改` });
+          }
+        }
+      }
       DATA.schedules[month] = DATA.schedules[month] || {};
       DATA.schedules[month][emp] = schedule;
+      DATA.submitCount[month] = DATA.submitCount[month] || {};
+      DATA.submitCount[month][emp] = mi.count + 1;
       DATA.lastSubmitted[emp] = new Date().toISOString();
       saveData(DATA);
-      return sendJson(res, 200, { ok: true, lastEdit: lockInfo(emp).lastEdit, restDays: rest });
+      const after = modifyInfo(emp, month);
+      return sendJson(res, 200, { ok: true, lastEdit: lockInfo(emp).lastEdit, restDays: rest, maxModify: after.max, leftModify: after.left, locked: after.locked });
     });
   }
 
