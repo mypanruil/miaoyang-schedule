@@ -59,6 +59,8 @@
   .day-cell.empty{background:transparent;border:none}
   .day-cell .day-num{font-size:14px;font-weight:700;color:var(--txt)}
   .day-cell select{font-size:13px;padding:6px 8px;border-radius:6px}
+  .day-cell.past{opacity:.5;background:#f3f4f6}
+  .day-cell.past .day-num{color:#9ca3af}
 
   .submit-area{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
   .submit-area button{padding:12px 32px;font-size:15px}
@@ -181,7 +183,7 @@
 
       <div class="submit-area">
         <button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button>
-        <div class="submit-tip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时重新提交覆盖。</div>
+        <div class="submit-tip" id="empSubmitTip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时重新提交覆盖。</div>
       </div>
     </div>
   </section>
@@ -214,6 +216,7 @@
 <script>
 const API='';
 let CONFIG=null;
+let empLock={locked:false,left:5,submitted:false,max:5,expired:false};
 const empState={month:curMonth(new Date()),schedule:{}};
 
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -273,25 +276,52 @@ async function empLoad(){
   try{
     const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
     empState.schedule=r.schedule||{};
+    const now=new Date(); const cy=now.getFullYear(),cm=now.getMonth()+1;
+    const [ey,em]=empState.month.split('-').map(Number);
+    const expired = ey<cy || (ey===cy && em<cm);
+    empLock={locked:!!r.locked||expired, left:r.leftModify, submitted:!!r.submitted, max:r.maxModify||5, expired:expired};
     renderEmpCal();
-    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班','ok');
+    updateSubmitUI();
+    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班'+(expired?'（该月已过期，仅可查看）':''),'ok');
   }catch(e){showMsg('empMsg',e,'err');}
 }
-function optHtml(d){
+function updateSubmitUI(){
+  const btn=document.getElementById('empSubmit');
+  const tip=document.getElementById('empSubmitTip');
+  if(empLock.locked){
+    btn.disabled=true;
+    btn.textContent='已锁定';
+    tip.innerHTML=empLock.expired?('该月已过期，不能修改排班。'):('本月修改次数已用完，排班已锁定（共 '+empLock.max+' 次）。');
+  }else if(empLock.submitted){
+    btn.disabled=false;
+    btn.textContent='修改并提交';
+    tip.innerHTML='本月还可修改 <b>'+empLock.left+'</b> 次。';
+  }else{
+    btn.disabled=false;
+    btn.textContent='提交排班';
+    tip.innerHTML='首次提交后，本月可修改 <b>'+empLock.max+'</b> 次。';
+  }
+}
+function optHtml(d,past){
   const v=empState.schedule[d]||'';
   const opts=[{k:'',t:'未排'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
-  return `<select onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
+  return `<select ${past?'disabled':''} onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
   if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候再试','err');return;}
   const n=daysIn(empState.month);
   const off=firstOffset(empState.month);
   const wd=['一','二','三','四','五','六','日'];
+  const now=new Date();
+  const curM=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const isCurMonth=empState.month===curM;
+  const today=now.getDate();
   let h='<div class="calgrid">';
   wd.forEach(w=>h+=`<div class="wd">${w}</div>`);
   for(let i=0;i<off;i++)h+='<div class="day-cell empty"></div>';
   for(let d=1;d<=n;d++){
-    h+=`<div class="day-cell"><div class="day-num">${d}</div>${optHtml(d)}</div>`;
+    const past=isCurMonth && d<today;
+    h+=`<div class="day-cell${past?' past':''}"><div class="day-num">${d}</div>${optHtml(d,past)}</div>`;
   }
   const tail=(7-(off+n)%7)%7;
   for(let i=0;i<tail;i++)h+='<div class="day-cell empty"></div>';
@@ -302,7 +332,7 @@ function renderEmpCal(){
   const rc=document.getElementById('empRest');
   rc.className='rest-count'+(rest>need?' bad':'');
   rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest>need?('（超出 '+(rest-need)+' 天，请减少）'):'');
-  document.getElementById('empSubmit').disabled=rest>need;
+  document.getElementById('empSubmit').disabled=(rest>need)||empLock.locked;
 }
 function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
@@ -311,8 +341,10 @@ async function empSubmit(){
   const pin=document.getElementById('empPin').value||'';
   if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
-    await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
-    showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
+    const res=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
+    empLock={locked:!!res.locked, left:res.leftModify, submitted:true, max:res.maxModify||5, expired:empLock.expired};
+    updateSubmitUI();
+    showMsg('empMsg',(empLock.locked?'提交成功！本月修改次数已用完，排班已锁定':'提交成功！可随时修改，重新提交即覆盖'),'ok');
     loadAll();
   }catch(e){showMsg('empMsg',e,'err');}
 }
