@@ -6,57 +6,73 @@
 <title>徐州妙漾医疗美容 · 员工排班表</title>
 <style>
   :root{
-    --bg:#0f1419;--panel:#1a212b;--panel2:#222c38;--line:#2c3744;--txt:#e6edf3;--mut:#8b98a5;
-    --accent:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--rest:#ef4444;--early:#3b82f6;--late:#f59e0b;
+    --bg:#eef1f6;--panel:#ffffff;--line:#dde3ec;--txt:#1f2a37;--mut:#788796;
+    --accent:#2563eb;--ok:#16a34a;--warn:#d97706;--err:#dc2626;
+    --early:#2563eb;--late:#d97706;--rest:#dc2626;
+    --earlybg:#e7f0ff;--latebg:#fff3df;--restbg:#ffe9e9;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
-  .wrap{max-width:1100px;margin:0 auto;padding:12px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-  h1{font-size:18px;margin:0}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:19px;margin:0;color:var(--txt)}
   .tabs{display:flex;gap:6px}
-  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--mut);cursor:pointer;font-size:14px}
+  .tab{padding:9px 16px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--mut);cursor:pointer;font-size:14px;font-weight:600}
   .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-  label{font-size:13px;color:var(--mut);display:block;margin:8px 0 4px}
-  select,input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:15px}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row>*{flex:1;min-width:120px}
-  button{padding:10px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
-  button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
-  button.ok{background:var(--ok)} button.warn{background:var(--warn)} button.err{background:var(--err)}
-  .msg{font-size:13px;margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
-  .msg.info{background:#1e2a3a;color:#9cc4ff;display:block}
-  .msg.err{background:#3a1e1e;color:#ffb4b4;display:block}
-  .msg.ok{background:#16331f;color:#9ff0b6;display:block}
-  /* calendar */
-  .cal{overflow-x:auto;margin-top:10px}
-  table{border-collapse:collapse;width:100%;min-width:560px}
-  th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
-  th.emp,td.emp{position:sticky;left:0;background:var(--panel2);text-align:left;padding-left:8px;min-width:96px;z-index:2}
-  .day .d{font-size:11px;color:var(--mut)}
-  .cell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
-  .cell.early{background:rgba(59,130,246,.22);color:#bcd8ff}
-  .cell.late{background:rgba(245,158,11,.22);color:#ffd99a}
-  .cell.rest{background:rgba(239,68,68,.22);color:#ffb4b4}
-  .rest-count{font-size:14px;margin-top:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+  label{font-size:13px;color:var(--mut);display:block;margin:10px 0 5px}
+  select,input{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:15px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:130px}
+  button{padding:11px 18px;border:none;border-radius:9px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
+  button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
+  button.ok{background:var(--ok)} button.warn{background:var(--warn)}
+  .msg{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:9px;display:none}
+  .msg.info{background:#e8f0fe;color:#1d4ed8;display:block}
+  .msg.err{background:#fde8e8;color:#b91c1c;display:block}
+  .msg.ok{background:#e7f7ec;color:#15803d;display:block}
+  /* 员工周历 */
+  .cal{margin-top:14px;overflow-x:auto}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;min-width:520px}
+  .wd{text-align:center;font-size:12px;color:var(--mut);padding:4px 0;font-weight:600}
+  .cell{border:1px solid var(--line);border-radius:10px;min-height:62px;padding:6px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;background:#fff;transition:.12s;user-select:none}
+  .cell:hover{border-color:var(--accent)}
+  .cell.empty{background:transparent;border:none;cursor:default}
+  .cell .d{font-size:13px;color:var(--mut)}
+  .cell .v{font-size:13px;font-weight:700;text-align:center;padding:4px 0;border-radius:7px}
+  .cell.early{background:var(--earlybg);border-color:#bcd3ff}
+  .cell.early .v{color:var(--early);background:#fff}
+  .cell.late{background:var(--latebg);border-color:#f0d6a8}
+  .cell.late .v{color:var(--late);background:#fff}
+  .cell.rest{background:var(--restbg);border-color:#f3bcbc}
+  .cell.rest .v{color:var(--rest);background:#fff}
+  .rest-count{font-size:15px;margin-top:12px;font-weight:600}
   .rest-count b{color:var(--ok)}
   .rest-count.bad b{color:var(--err)}
-  .legend{font-size:12px;color:var(--mut);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
-  .lock{background:#3a2a10;color:#ffd99a;padding:10px;border-radius:8px;margin-top:8px;font-size:13px}
-  .pill{font-size:11px;color:var(--mut)}
-  footer{font-size:12px;color:var(--mut);text-align:center;margin:16px 0}
-  a{color:var(--accent)}
+  .legend{font-size:13px;color:var(--mut);margin-top:10px;display:flex;gap:16px;flex-wrap:wrap}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  .lock{background:#fff7e8;color:#92400e;padding:10px 12px;border-radius:9px;margin-top:10px;font-size:13px;border:1px solid #f4d9a6}
   .muted{color:var(--mut);font-size:13px}
-  /* admin grid */
-  .agrid{overflow-x:auto;margin-top:10px}
-  .settings label{font-size:12px}
-  .emp-row{display:flex;gap:6px;margin:4px 0}
+  /* 管理员网格 */
+  .agrid{overflow-x:auto;margin-top:12px}
+  table{border-collapse:collapse;width:100%;min-width:620px}
+  th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
+  th{background:#f3f6fb;color:var(--mut);font-weight:600}
+  th.emp,td.emp{position:sticky;left:0;background:#f7f9fc;text-align:left;padding-left:10px;min-width:110px;z-index:2}
+  td.emp.bad{color:var(--err);font-weight:700}
+  .cell{height:30px}
+  .gcell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
+  .gcell.early{background:var(--earlybg);color:var(--early)}
+  .gcell.late{background:var(--latebg);color:var(--late)}
+  .gcell.rest{background:var(--restbg);color:var(--rest)}
+  /* 设置弹窗 */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
+  .overlay .card{max-width:540px;width:100%;max-height:90vh;overflow:auto}
+  .emp-row{display:flex;gap:8px;margin:6px 0}
   .emp-row input{flex:1}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
-  .overlay .card{max-width:520px;width:100%;max-height:90vh;overflow:auto}
   .hidden{display:none}
+  footer{font-size:12px;color:var(--mut);text-align:center;margin:18px 0}
+  a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -77,9 +93,9 @@
         <div id="pinBox" class="hidden"><label>PIN 码</label><input id="empPin" type="password" placeholder="请输入 PIN"></div>
         <div><label>月份</label><select id="empMonth"></select></div>
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="empLoad()">加载我的排班</button>
-        <button class="ghost" onclick="empClear()">清空</button>
+        <button class="ghost" onclick="empClear()">清空重填</button>
       </div>
       <div id="empMsg" class="msg"></div>
       <div id="empLock" class="lock hidden"></div>
@@ -90,8 +106,8 @@
         <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
         <span><span class="dot" style="background:var(--rest)"></span>休息</span>
       </div>
-      <div style="margin-top:12px"><button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button></div>
-      <p class="muted">提示：点击日期单元格在 早/晚/休 之间切换；休息须正好 <b id="needRest">5</b> 天。提交后本周（7天）内不可再改。</p>
+      <div style="margin-top:14px"><button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button></div>
+      <p class="muted" style="margin-top:10px">点击日期格子在 早 / 晚 / 休 之间切换；每月休息须正好 <b id="needRest">5</b> 天，不满或超出不能提交。提交后可随时重新提交覆盖。</p>
     </div>
   </section>
 
@@ -100,7 +116,7 @@
     <div id="admGate" class="card">
       <h3 style="margin-top:0">管理员验证</h3>
       <label>管理员密码</label><input id="admPwd" type="password" placeholder="默认 admin123">
-      <div style="margin-top:10px;display:flex;gap:8px">
+      <div style="margin-top:12px;display:flex;gap:8px">
         <button onclick="admLogin()">进入</button>
         <span class="muted" style="align-self:center">默认密码 admin123，登录后可在设置中修改</span>
       </div>
@@ -118,11 +134,11 @@
         </div>
         <div id="admMsg" class="msg"></div>
         <div class="agrid" id="admGrid"></div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="ok" onclick="admSaveAll()">保存排班</button>
           <button onclick="admExport()">导出 PDF</button>
         </div>
-        <p class="muted">管理员可在此直接修改任意员工排班并保存；点「导出 PDF」在打印窗口选「另存为 PDF」即可。</p>
+        <p class="muted" style="margin-top:10px">管理员可在此直接修改任意员工排班并保存；点「导出 PDF」在打印窗口选「另存为 PDF」即可。</p>
       </div>
     </div>
   </section>
@@ -132,7 +148,7 @@
 
 <!-- 设置弹窗 -->
 <div id="setOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
-  <div class="card settings">
+  <div class="card">
     <h3 style="margin-top:0">基础设置</h3>
     <label>公司名称</label><input id="setCompany">
     <div class="row">
@@ -145,7 +161,7 @@
     <label>管理员密码(留空不修改)</label><input id="setPwd" type="password" placeholder="新密码">
     <label>员工名单（姓名 / PIN，PIN 可空）</label>
     <div id="setEmps"></div>
-    <div style="margin-top:8px;display:flex;gap:8px">
+    <div style="margin-top:10px;display:flex;gap:8px">
       <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
       <button class="ok" onclick="saveSettings()">保存设置</button>
       <button class="ghost" onclick="closeSettings()">关闭</button>
@@ -155,79 +171,84 @@
 </div>
 
 <script>
-const API = '';
-let CONFIG = null;
-const empState = { month: curMonth(new Date()), schedule: {} };
-const admState = { token: localStorage.getItem('admToken') || '', month: curMonth(new Date()), data: { schedules: {} }, draft: {} };
+const API='';
+let CONFIG=null;
+const empState={month:curMonth(new Date()),schedule:{}};
+const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Date()),data:{schedules:{}},draft:{}};
 
-function curMonth(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-function monthLabel(m){ const [y,mm]=m.split('-'); return y+'年'+Number(mm)+'月'; }
-function daysIn(m){ const [y,mm]=m.split('-').map(Number); return new Date(y,mm,0).getDate(); }
-function pad(n){ return String(n).padStart(2,'0'); }
+function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
+function daysIn(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
+function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;} // 周一开头
 
-async function api(path, opts){ opts=opts||{}; const r=await fetch(API+path, Object.assign({headers:{'Content-Type':'application/json'}},opts)); let j=null; try{j=await r.json();}catch(e){} if(!r.ok) throw (j&&j.error)||('错误'+r.status); return j; }
-function showMsg(id,text,kind){ const el=document.getElementById(id); el.className='msg '+(kind||'info'); el.textContent=text; }
+async function api(path,opts){opts=opts||{};const r=await fetch(API+path,Object.assign({headers:{'Content-Type':'application/json'}},opts));let j=null;try{j=await r.json();}catch(e){}if(!r.ok)throw (j&&j.error)||('错误'+r.status);return j;}
+function showMsg(id,text,kind){const el=document.getElementById(id);el.className='msg '+(kind||'info');el.textContent=text;}
 
 async function loadConfig(){
-  CONFIG = await api('/api/config');
-  document.getElementById('companyTitle').textContent = CONFIG.company+' · 排班表';
-  document.getElementById('lgEarly').textContent = CONFIG.earlyShift;
-  document.getElementById('lgLate').textContent = CONFIG.lateShift;
-  document.getElementById('needRest').textContent = CONFIG.restDaysPerMonth;
-  document.getElementById('footNote').textContent = CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
-  // 员工下拉
-  const sel=document.getElementById('empSel'); sel.innerHTML='';
-  CONFIG.employees.forEach(e=>{ const o=document.createElement('option'); o.value=e.name; o.textContent=e.name; sel.appendChild(o); });
-  sel.onchange=()=>{ document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin); };
-  document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin);
-  // 月份下拉
-  fillMonths(document.getElementById('empMonth'), empState.month);
-  fillMonths(document.getElementById('admMonth'), admState.month);
-  if(admState.token) try{ const d=await api('/api/admin/data?token='+admState.token); if(d.config){ showAdm(); } }catch(e){ localStorage.removeItem('admToken'); admState.token=''; }
+  CONFIG=await api('/api/config');
+  document.getElementById('companyTitle').textContent=CONFIG.company+' · 排班表';
+  document.getElementById('lgEarly').textContent=CONFIG.earlyShift;
+  document.getElementById('lgLate').textContent=CONFIG.lateShift;
+  document.getElementById('needRest').textContent=CONFIG.restDaysPerMonth;
+  document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
+  const sel=document.getElementById('empSel');sel.innerHTML='';
+  CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
+  sel.onchange=()=>{document.getElementById('pinBox').classList.toggle('hidden',!CONFIG.employees.find(e=>e.name===sel.value).hasPin);};
+  document.getElementById('pinBox').classList.toggle('hidden',!CONFIG.employees.find(e=>e.name===sel.value).hasPin);
+  fillMonths(document.getElementById('empMonth'),empState.month);
+  fillMonths(document.getElementById('admMonth'),admState.month);
+  if(admState.token)try{const d=await api('/api/admin/data?token='+admState.token);if(d.config)showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
 }
-
-function fillMonths(sel, cur){
+function fillMonths(sel,cur){
   sel.innerHTML='';
   const now=new Date();
-  for(let i=-1;i<=3;i++){ const d=new Date(now.getFullYear(), now.getMonth()+i, 1); const m=curMonth(d); const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); if(m===cur)o.selected=true; sel.appendChild(o); }
+  for(let i=-1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);const m=curMonth(d);const o=document.createElement('option');o.value=m;o.textContent=monthLabel(m);if(m===cur)o.selected=true;sel.appendChild(o);}
 }
-
 function switchTab(t){
-  document.getElementById('tabEmp').classList.toggle('active', t==='emp');
-  document.getElementById('tabAdm').classList.toggle('active', t==='adm');
-  document.getElementById('secEmp').classList.toggle('hidden', t!=='emp');
-  document.getElementById('secAdm').classList.toggle('hidden', t!=='adm');
+  document.getElementById('tabEmp').classList.toggle('active',t==='emp');
+  document.getElementById('tabAdm').classList.toggle('active',t==='adm');
+  document.getElementById('secEmp').classList.toggle('hidden',t!=='emp');
+  document.getElementById('secAdm').classList.toggle('hidden',t!=='adm');
 }
 
-/* ---------- 员工端 ---------- */
-function empClear(){ empState.schedule={}; renderEmpCal(); }
+/* ---------- 员工端（周历） ---------- */
+function empClear(){empState.schedule={};renderEmpCal();}
 async function empLoad(){
   const emp=document.getElementById('empSel').value;
-  const month=document.getElementById('empMonth').value; empState.month=month;
+  const month=document.getElementById('empMonth').value;empState.month=month;
   try{
     const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+month);
     empState.schedule=r.schedule||{};
-    if(r.lastEdit){ const lock=document.getElementById('empLock'); lock.classList.remove('hidden'); lock.textContent='上次提交时间：'+new Date(r.lastEdit).toLocaleString('zh-CN')+'（可随时修改）'; }
+    if(r.lastEdit){const lock=document.getElementById('empLock');lock.classList.remove('hidden');lock.textContent='上次提交时间：'+new Date(r.lastEdit).toLocaleString('zh-CN')+'（可随时修改，重新提交即覆盖）';}
     renderEmpCal();
-    showMsg('empMsg','已加载'+emp+' 的排班','ok');
-  }catch(e){ showMsg('empMsg',e,'err'); }
+    showMsg('empMsg','已加载 '+emp+' 的排班','ok');
+  }catch(e){showMsg('empMsg',e,'err');}
 }
-function cycle(v){ return v==='early'?'late':v==='late'?'rest':'early'; }
+function cycle(v){return v==='early'?'late':v==='late'?'rest':'early';}
+function cellHtml(d,v){
+  const cls=v?'cell '+v:'cell';
+  const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';
+  return `<div class="${cls}" onclick="empSet(${d})"><div class="d">${d}</div><div class="v">${t}</div></div>`;
+}
 function renderEmpCal(){
   const n=daysIn(empState.month);
-  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
-  h+='</tr></thead><tbody><tr><td class="emp">'+document.getElementById('empSel').value+'</td>';
-  for(let d=1;d<=n;d++){ const v=empState.schedule[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="empSet(${d})"><div class="${cls}">${t}</div></td>`; }
-  h+='</tr></tbody></table>';
+  const off=firstOffset(empState.month);
+  const wd=['一','二','三','四','五','六','日'];
+  let h='<div class="calgrid">';
+  wd.forEach(w=>h+=`<div class="wd">${w}</div>`);
+  for(let i=0;i<off;i++)h+='<div class="cell empty"></div>';
+  for(let d=1;d<=n;d++)h+=cellHtml(d,empState.schedule[d]||'');
+  const tail=(7-(off+n)%7)%7;
+  for(let i=0;i<tail;i++)h+='<div class="cell empty"></div>';
+  h+='</div>';
   document.getElementById('empCal').innerHTML=h;
   const rest=Object.values(empState.schedule).filter(v=>v==='rest').length;
   const need=CONFIG.restDaysPerMonth;
-  const rc=document.getElementById('empRest'); rc.className='rest-count'+(rest!==need?' bad':'');
-  rc.innerHTML='休息天数：<b>'+rest+'</b> / 需 '+need+' 天';
-  document.getElementById('empSubmit').disabled = rest!==need;
+  const rc=document.getElementById('empRest');rc.className='rest-count'+(rest!==need?' bad':'');
+  rc.innerHTML='休息天数：<b>'+rest+'</b> / 需 '+need+' 天'+(rest!==need?(' （还差 '+(need-rest)+' 天）'):'');
+  document.getElementById('empSubmit').disabled=rest!==need;
 }
-function empSet(d){ empState.schedule[d]=cycle(empState.schedule[d]||''); renderEmpCal(); }
+function empSet(d){empState.schedule[d]=cycle(empState.schedule[d]||'');renderEmpCal();}
 async function empSubmit(){
   const emp=document.getElementById('empSel').value;
   const month=empState.month;
@@ -235,58 +256,57 @@ async function empSubmit(){
   try{
     const r=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month,schedule:empState.schedule})});
     showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
-    const lock=document.getElementById('empLock'); lock.classList.remove('hidden');
+    const lock=document.getElementById('empLock');lock.classList.remove('hidden');
     lock.textContent='上次提交时间：'+new Date().toLocaleString('zh-CN')+'（可随时修改）';
-  }catch(e){ showMsg('empMsg',e,'err'); }
+  }catch(e){showMsg('empMsg',e,'err');}
 }
 
 /* ---------- 管理员端 ---------- */
-function showAdm(){ document.getElementById('admGate').classList.add('hidden'); document.getElementById('admMain').classList.remove('hidden'); admLoad(); }
+function showAdm(){document.getElementById('admGate').classList.add('hidden');document.getElementById('admMain').classList.remove('hidden');admLoad();}
 async function admLogin(){
-  try{ const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:document.getElementById('admPwd').value})}); admState.token=r.token; localStorage.setItem('admToken',r.token); showAdm(); }
-  catch(e){ showMsg('admGateMsg',e,'err'); }
+  try{const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:document.getElementById('admPwd').value})});admState.token=r.token;localStorage.setItem('admToken',r.token);showAdm();}
+  catch(e){showMsg('admGateMsg',e,'err');}
 }
 async function admLoad(){
-  if(!admState.token) return;
+  if(!admState.token)return;
   try{
     const d=await api('/api/admin/data?token='+admState.token);
     admState.data=d;
-    const m=document.getElementById('admMonth').value; admState.month=m;
-    if(!d.schedules[m]) d.schedules[m]={};
+    const m=document.getElementById('admMonth').value;admState.month=m;
+    if(!d.schedules[m])d.schedules[m]={};
     admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
     renderAdmGrid();
     showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+Object.keys(d.schedules[m]).length+' 人已提交）','ok');
-  }catch(e){ showMsg('admMsg',e,'err'); }
+  }catch(e){showMsg('admMsg',e,'err');}
 }
+function gcellHtml(v){const cls=v?'gcell '+v:'';const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';return `<div class="${cls}">${t}</div>`;}
 function renderAdmGrid(){
   const names=CONFIG.employees.map(e=>e.name);
   const n=daysIn(admState.month);
   let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
+  for(let d=1;d<=n;d++)h+=`<th>${d}</th>`;
   h+='</tr></thead><tbody>';
   names.forEach(name=>{
     const s=admState.draft[name]||{};
     const rest=Object.values(s).filter(v=>v==='rest').length;
     const bad=rest!==CONFIG.restDaysPerMonth;
-    h+=`<tr><td class="emp" style="${bad?'color:#ef4444':''}">${name}${bad?' ('+rest+')':''}</td>`;
-    for(let d=1;d<=n;d++){ const v=s[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="admSet('${name}',${d})"><div class="${cls}">${t}</div></td>`; }
+    h+=`<tr><td class="emp${bad?' bad':''}">${name}${bad?' ('+rest+')':''}</td>`;
+    for(let d=1;d<=n;d++){const v=s[d]||'';h+=`<td onclick="admSet('${name}',${d})">${gcellHtml(v)}</td>`;}
     h+='</tr>';
   });
   h+='</tbody></table>';
   document.getElementById('admGrid').innerHTML=h;
 }
-function admSet(name,d){ admState.draft[name]=admState.draft[name]||{}; admState.draft[name][d]=cycle(admState.draft[name][d]||''); renderAdmGrid(); }
+function admSet(name,d){admState.draft[name]=admState.draft[name]||{};admState.draft[name][d]=cycle(admState.draft[name][d]||'');renderAdmGrid();}
 async function admSaveAll(){
   try{
-    await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:'__all__',schedule:admState.draft})});
-    // 逐人保存
     for(const name of Object.keys(admState.draft)){
       await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:name,schedule:admState.draft[name]})});
     }
     showMsg('admMsg','已保存 '+monthLabel(admState.month)+' 排班','ok');
-  }catch(e){ showMsg('admMsg',e,'err'); }
+  }catch(e){showMsg('admMsg',e,'err');}
 }
-function admExport(){ window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month, '_blank'); }
+function admExport(){window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month,'_blank');}
 
 /* ---------- 设置 ---------- */
 async function openSettings(){
@@ -297,18 +317,18 @@ async function openSettings(){
     document.getElementById('setLate').value=d.config.lateShift;
     document.getElementById('setRest').value=d.config.restDaysPerMonth;
     document.getElementById('setPwd').value='';
-    const box=document.getElementById('setEmps'); box.innerHTML='';
+    const box=document.getElementById('setEmps');box.innerHTML='';
     d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
     document.getElementById('setOverlay').classList.remove('hidden');
-  }catch(e){ showMsg('admMsg',e,'err'); }
+  }catch(e){showMsg('admMsg',e,'err');}
 }
-function addEmpRow(name,pwd){ const box=document.getElementById('setEmps'); const row=document.createElement('div'); row.className='emp-row'; row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`; box.appendChild(row); }
-function closeSettings(){ document.getElementById('setOverlay').classList.add('hidden'); }
+function addEmpRow(name,pwd){const box=document.getElementById('setEmps');const row=document.createElement('div');row.className='emp-row';row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`;box.appendChild(row);}
+function closeSettings(){document.getElementById('setOverlay').classList.add('hidden');}
 async function saveSettings(){
   const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
-  const cfg={ company:document.getElementById('setCompany').value, earlyShift:document.getElementById('setEarly').value, lateShift:document.getElementById('setLate').value, restDaysPerMonth:Number(document.getElementById('setRest').value), employees:emps, adminPassword:document.getElementById('setPwd').value };
-  try{ await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})}); showMsg('setMsg','设置已保存，正在刷新…','ok'); await loadConfig(); setTimeout(closeSettings,600); }
-  catch(e){ showMsg('setMsg',e,'err'); }
+  const cfg={company:document.getElementById('setCompany').value,earlyShift:document.getElementById('setEarly').value,lateShift:document.getElementById('setLate').value,restDaysPerMonth:Number(document.getElementById('setRest').value),employees:emps,adminPassword:document.getElementById('setPwd').value};
+  try{await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})});showMsg('setMsg','设置已保存，正在刷新…','ok');await loadConfig();setTimeout(closeSettings,600);}
+  catch(e){showMsg('setMsg',e,'err');}
 }
 
 loadConfig().catch(e=>showMsg('empMsg',e,'err'));
