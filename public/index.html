@@ -47,8 +47,8 @@
   .month-nav button{width:32px;height:32px;padding:0;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:6px;font-size:16px;line-height:1}
   .month-nav button:hover{background:#f3f4f6}
   .month-nav span{min-width:90px;text-align:center;font-weight:600;color:var(--txt)}
-  .month-picker{display:flex;gap:8px}
-  .month-picker select{flex:1;min-width:0}
+  .month-picker{display:flex;gap:8px;align-items:center}
+  .month-picker select{flex:0 0 auto;min-width:90px;padding:10px 28px 10px 12px;font-size:14px}
 
   .status-bar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;flex-wrap:wrap;gap:10px}
   .rest-count{font-size:15px;color:var(--txt)}
@@ -112,10 +112,10 @@
     .row{flex-direction:column;align-items:stretch;gap:10px}
     .row .field{min-width:0;width:100%}
     .row .field.sm{flex:none;width:100%}
-    .month-picker{display:flex;gap:8px}
+    .month-picker{display:flex;gap:8px;width:100%}
+    .month-picker select{flex:0 0 auto;min-width:80px;padding:9px 24px 9px 6px;font-size:14px}
     .actions{display:flex;width:100%;gap:10px}
     .actions button{flex:1;padding:11px 8px;font-size:14px}
-    .month-picker select{padding:9px 6px;font-size:14px}
     .status-bar{margin:12px 0 8px;gap:8px}
     .rest-count{font-size:14px}
     .rest-count b{font-size:17px}
@@ -314,8 +314,9 @@ function fillYearMonth(prefix,cur){
   const sm=document.getElementById(prefix+'Month');
   const base=new Date().getFullYear();
   sy.innerHTML='';sm.innerHTML='';
-  for(let y=base-5;y<=base+25;y++){const o=document.createElement('option');o.value=y;o.textContent=y+'年';if(y===cy)o.selected=true;sy.appendChild(o);}
-  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=String(m).padStart(2,'0');o.textContent=m+'月';if(m===cm)o.selected=true;sm.appendChild(o);}
+  for(let y=base-5;y<=base+25;y++){const o=document.createElement('option');o.value=String(y);o.textContent=y+'年';sy.appendChild(o);}
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=String(m).padStart(2,'0');o.textContent=m+'月';sm.appendChild(o);}
+  sy.value=String(cy);sm.value=String(cm).padStart(2,'0');
 }
 function getYearMonth(prefix){
   const y=document.getElementById(prefix+'Year').value;
