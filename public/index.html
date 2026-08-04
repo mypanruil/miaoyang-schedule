@@ -181,7 +181,7 @@
 
       <div class="submit-area">
         <button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button>
-        <div class="submit-tip">休息天数须正好为 <b id="needRest">5</b> 天，不满或超出不能提交。提交后可随时重新提交覆盖。</div>
+        <div class="submit-tip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时重新提交覆盖。</div>
       </div>
     </div>
   </section>
@@ -300,9 +300,9 @@ function renderEmpCal(){
   const rest=Object.values(empState.schedule).filter(v=>v==='rest').length;
   const need=CONFIG.restDaysPerMonth;
   const rc=document.getElementById('empRest');
-  rc.className='rest-count'+(rest!==need?' bad':'');
-  rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest!==need?('（还差 '+(need-rest)+' 天）'):'');
-  document.getElementById('empSubmit').disabled=rest!==need;
+  rc.className='rest-count'+(rest>need?' bad':'');
+  rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest>need?('（超出 '+(rest-need)+' 天，请减少）'):'');
+  document.getElementById('empSubmit').disabled=rest>need;
 }
 function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
