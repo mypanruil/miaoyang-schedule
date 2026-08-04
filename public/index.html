@@ -267,7 +267,26 @@ function getYearMonth(prefix){
 
 /* ---------- 员工端 ---------- */
 function onEmpMonthChange(){empState.month=getYearMonth('emp');}
-function empClear(){empState.schedule={};renderEmpCal();showMsg('empMsg','已清空，请重新选择','info');}
+async function empClear(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
+  const emp=document.getElementById('empSel').value;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
+  try{
+    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
+    const sch=r.schedule||{};
+    const now=new Date();
+    const [yy,mm]=empState.month.split('-').map(Number);
+    const isPastDate=(dd)=> (yy<now.getFullYear()) || (yy===now.getFullYear()&&mm<now.getMonth()+1) || (yy===now.getFullYear()&&mm===now.getMonth()+1&&dd<now.getDate());
+    const cleaned={};
+    for(const k of Object.keys(sch)){
+      const dd=Number(k);
+      if(isPastDate(dd)) cleaned[k]=sch[k]; // 已过期 / 过去的日期保留，不能清空
+    }
+    empState.schedule=cleaned;
+    renderEmpCal();
+    showMsg('empMsg','已清空未来的排班，过去的已提交排班已保留不可更改','info');
+  }catch(e){showMsg('empMsg',e,'err');}
+}
 async function empLoad(){
   if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   empState.month=getYearMonth('emp');
