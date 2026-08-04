@@ -34,6 +34,9 @@
   button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
   button.ghost:hover{background:#f9fafb}
   button.ok{background:var(--ok)} button.ok:hover{background:#15803d}
+  button.errbtn{background:var(--err)} button.errbtn:hover{background:#b91c1c}
+  button.clr{background:#fff;color:var(--err);border:1px solid #fecaca;font-size:12px;padding:2px 8px;font-weight:500;margin-top:4px}
+  button.clr:hover{background:#fee2e2}
 
   .row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
   .row .field{flex:0 0 240px;min-width:0}
@@ -168,6 +171,20 @@
   </div>
 </div>
 
+<!-- 清除排班记录弹窗 -->
+<div id="clearOverlay" class="overlay hidden" onclick="if(event.target===this)closeClear()">
+  <div class="card">
+    <div class="card-title">清除排班记录</div>
+    <p id="clearInfo" style="font-size:14px;margin:4px 0 12px"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="errbtn" onclick="doClear(false)">清除本月</button>
+      <button class="errbtn" onclick="doClear(true)">清除全部月份</button>
+      <button class="ghost" onclick="closeClear()">取消</button>
+    </div>
+    <div id="clearMsg" class="msg"></div>
+  </div>
+</div>
+
 <script>
 const API='';
 let CONFIG=null;
@@ -233,7 +250,7 @@ function renderAdmGrid(){
     const s=admState.draft[name]||{};
     const rest=Object.values(s).filter(v=>v==='rest').length;
     const bad=rest!==CONFIG.restDaysPerMonth;
-    h+=`<tr><td class="emp${bad?' bad':''}">${name}${bad?' ('+rest+')':''}</td>`;
+    h+=`<tr><td class="emp${bad?' bad':''}"><div class="empname">${name}${bad?' ('+rest+')':''}</div><button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button></td>`;
     for(let d=1;d<=n;d++){const v=s[d]||'';h+=`<td onclick="admSet('${name}',${d})">${gcellHtml(v)}</td>`;}
     h+='</tr>';
   });
@@ -251,6 +268,32 @@ async function admSaveAll(){
   }catch(e){showMsg('admMsg',e,'err');}
 }
 function admExport(){window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month,'_blank');}
+
+/* ---------- 清除员工排班 ---------- */
+function escAttr(s){return String(s).replace(/"/g,'&quot;');}
+let clearTarget='';
+function openClear(btn){
+  clearTarget=btn.dataset.emp;
+  document.getElementById('clearInfo').textContent='员工：'+clearTarget+' ｜ 当前月份：'+monthLabel(admState.month);
+  const m=document.getElementById('clearMsg');m.className='msg';
+  document.getElementById('clearOverlay').classList.remove('hidden');
+}
+function closeClear(){document.getElementById('clearOverlay').classList.add('hidden');}
+async function doClear(all){
+  if(!clearTarget)return;
+  const msg=all
+    ? ('确定清除 '+clearTarget+' 全部月份的排班记录？此操作不可恢复')
+    : ('确定清除 '+clearTarget+' 在 '+monthLabel(admState.month)+' 的排班记录？此操作不可恢复');
+  if(!confirm(msg))return;
+  try{
+    const body={token:admState.token,emp:clearTarget,allMonths:all};
+    if(!all)body.month=admState.month;
+    const r=await api('/api/admin/clear',{method:'POST',body:JSON.stringify(body)});
+    showMsg('clearMsg',(all?'已清除全部月份':'已清除本月')+'的排班记录（'+r.removed+' 条）','ok');
+    await admLoad();
+    setTimeout(closeClear,800);
+  }catch(e){showMsg('clearMsg',e,'err');}
+}
 
 /* ---------- 设置 ---------- */
 async function openSettings(){
