@@ -133,6 +133,19 @@ const server = http.createServer((req, res) => {
     });
   }
 
+  // ---- 全员排班公开总览（员工可查看汇总结果）----
+  if (p === '/api/summary' && req.method === 'GET') {
+    const month = url.searchParams.get('month');
+    if (!month) return sendJson(res, 400, { error: '缺少月份' });
+    const sch = DATA.schedules[month] || {};
+    return sendJson(res, 200, {
+      month,
+      days: daysInMonth(month),
+      employees: DATA.config.employees.map(e => e.name),
+      schedules: sch
+    });
+  }
+
   // ---- 管理员：登录 ----
   if (p === '/api/admin/login' && req.method === 'POST') {
     return readBody(req, (err, b) => {
