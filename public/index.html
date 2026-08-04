@@ -18,10 +18,6 @@
   .topbar-inner{max-width:1100px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .brand-title{font-size:20px;font-weight:700;letter-spacing:.3px}
   .brand-sub{font-size:12px;opacity:.85;margin-top:2px}
-  .tabs{display:flex;gap:8px}
-  .tab{padding:8px 18px;border:1px solid rgba(255,255,255,.45);border-radius:6px;background:transparent;color:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:.15s}
-  .tab.active{background:#fff;color:var(--primary);border-color:#fff}
-  .tab:not(.active):hover{background:rgba(255,255,255,.12)}
 
   .wrap{max-width:1100px;margin:0 auto;padding:20px}
   .card{background:var(--panel);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px}
@@ -44,10 +40,6 @@
   .row .field.sm{flex:0 0 220px;min-width:0}
   .row .actions{flex:1 1 100%;display:flex;gap:10px;justify-content:flex-start;margin-top:8px}
 
-  .month-nav{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}
-  .month-nav button{width:32px;height:32px;padding:0;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:6px;font-size:16px;line-height:1}
-  .month-nav button:hover{background:#f3f4f6}
-  .month-nav span{min-width:90px;text-align:center;font-weight:600;color:var(--txt)}
   .month-picker{display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
   .month-picker select{flex:0 0 auto;width:auto;min-width:0;padding:10px 28px 10px 12px;font-size:14px}
 
@@ -77,23 +69,6 @@
   .msg.err{background:#fee2e2;color:#b91c1c;display:block}
   .msg.ok{background:#dcfce7;color:#166534;display:block}
 
-  /* 管理员 */
-  .agrid{overflow-x:auto;margin-top:14px}
-  table{border-collapse:collapse;width:100%;min-width:640px}
-  th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
-  th{background:#f3f4f6;color:var(--mut);font-weight:600}
-  th.emp,td.emp{position:sticky;left:0;background:#f9fafb;text-align:left;padding-left:10px;min-width:110px;z-index:2}
-  td.emp.bad{color:var(--err);font-weight:700}
-  .gcell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
-  .gcell.early{background:var(--earlybg);color:var(--early)}
-  .gcell.late{background:var(--latebg);color:var(--late)}
-  .gcell.rest{background:var(--restbg);color:var(--rest)}
-
-  /* 设置弹窗 */
-  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
-  .overlay .card{max-width:560px;width:100%;max-height:90vh;overflow:auto}
-  .emp-row{display:flex;gap:8px;margin:6px 0}
-  .emp-row input{flex:1}
   .hidden{display:none}
   footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
 
@@ -104,8 +79,6 @@
     .topbar-inner{padding:0 12px;gap:8px}
     .brand-title{font-size:16px}
     .brand-sub{font-size:11px}
-    .tabs{gap:6px}
-    .tab{padding:6px 12px;font-size:13px}
     .wrap{padding:10px}
     .card{padding:12px;border-radius:10px;margin-bottom:12px}
     .card-title{font-size:16px;margin-bottom:10px;gap:6px}
@@ -128,7 +101,7 @@
     .wd{font-size:11px;padding:4px 0}
     .day-cell{min-height:0;padding:5px 3px 7px;border-radius:8px;gap:3px;align-items:center;justify-content:center}
     .day-cell .day-num{font-size:13px;font-weight:700}
-    .day-cell select{font-size:12px;padding:5px 2px;height:auto;min-height:32px;border-radius:5px;text-align:center;direction:ltr;width:100%;min-width:0;-webkit-appearance:none;appearance:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\") no-repeat right 3px center;background-size:12px}
+    .day-cell select{font-size:12px;padding:5px 2px;height:auto;min-height:32px;border-radius:5px;text-align:center;direction:ltr;width:100%;min-width:0;-webkit-appearance:none;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 3px center;background-size:12px}
     .day-cell.empty{visibility:hidden;border:none;background:transparent}
     .submit-area{margin-top:12px;padding-top:10px}
     .submit-area button{width:100%;padding:14px;font-size:16px}
@@ -146,10 +119,6 @@
     <div>
       <div class="brand-title">徐州妙漾医疗美容 · 员工排班系统</div>
       <div class="brand-sub" id="brandSub">徐州妙漾医疗美容有限公司</div>
-    </div>
-    <div class="tabs">
-      <div class="tab active" id="tabEmp" onclick="switchTab('emp')">员工填写</div>
-      <div class="tab" id="tabAdm" onclick="switchTab('adm')">管理员</div>
     </div>
   </div>
 </div>
@@ -204,80 +173,13 @@
     </div>
   </section>
 
-  <!-- 管理员端 -->
-  <section id="secAdm" class="hidden">
-    <div id="admGate" class="card">
-      <div class="card-title">管理员验证</div>
-      <div class="row" style="max-width:420px">
-        <div class="field">
-          <label>管理员密码</label>
-          <input id="admPwd" type="password" placeholder="默认 admin123">
-        </div>
-        <div class="actions">
-          <button onclick="admLogin()">进入</button>
-        </div>
-      </div>
-      <div id="admGateMsg" class="msg"></div>
-    </div>
-
-    <div id="admMain" class="hidden">
-      <div class="card">
-        <div class="card-title">管理员汇总</div>
-        <div class="row">
-          <div class="field sm">
-            <label>查看月份</label>
-            <div class="month-picker">
-              <select id="admYear" onchange="admLoad()"></select>
-              <select id="admMonth" onchange="admLoad()"></select>
-            </div>
-          </div>
-          <div class="actions">
-            <button class="ghost" onclick="admLoad()">刷新</button>
-            <button class="ghost" onclick="openSettings()">基础设置</button>
-          </div>
-        </div>
-        <div id="admMsg" class="msg"></div>
-        <div class="agrid" id="admGrid"></div>
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="ok" onclick="admSaveAll()">保存排班</button>
-          <button onclick="admExport()">导出 PDF</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <footer id="footNote"></footer>
-</div>
-
-<!-- 设置弹窗 -->
-<div id="setOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
-  <div class="card">
-    <div class="card-title">基础设置</div>
-    <label>公司名称</label><input id="setCompany">
-    <div class="row">
-      <div class="field"><label>早班时间</label><input id="setEarly"></div>
-      <div class="field"><label>晚班时间</label><input id="setLate"></div>
-    </div>
-    <div class="row">
-      <div class="field sm"><label>每月休息天数</label><input id="setRest" type="number"></div>
-    </div>
-    <label>管理员密码（留空不修改）</label><input id="setPwd" type="password" placeholder="新密码">
-    <label>员工名单（姓名 / PIN，PIN 可空）</label>
-    <div id="setEmps"></div>
-    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
-      <button class="ok" onclick="saveSettings()">保存设置</button>
-      <button class="ghost" onclick="closeSettings()">关闭</button>
-    </div>
-    <div id="setMsg" class="msg"></div>
-  </div>
 </div>
 
 <script>
 const API='';
 let CONFIG=null;
 const empState={month:curMonth(new Date()),schedule:{}};
-const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Date()),data:{schedules:{}},draft:{}};
 
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
@@ -301,9 +203,7 @@ async function loadConfig(){
   CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
-  fillYearMonth('adm',admState.month);
   document.getElementById('empSubmit').disabled=false;
-  if(admState.token)try{await api('/api/admin/data?token='+admState.token);showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
 }
 function updatePinBox(){
   const sel=document.getElementById('empSel');
@@ -323,12 +223,6 @@ function getYearMonth(prefix){
   const y=document.getElementById(prefix+'Year').value;
   const m=document.getElementById(prefix+'Month').value;
   return y+'-'+m;
-}
-function switchTab(t){
-  document.getElementById('tabEmp').classList.toggle('active',t==='emp');
-  document.getElementById('tabAdm').classList.toggle('active',t==='adm');
-  document.getElementById('secEmp').classList.toggle('hidden',t!=='emp');
-  document.getElementById('secAdm').classList.toggle('hidden',t!=='adm');
 }
 
 /* ---------- 员工端 ---------- */
@@ -383,77 +277,6 @@ async function empSubmit(){
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
   }catch(e){showMsg('empMsg',e,'err');}
-}
-
-/* ---------- 管理员端 ---------- */
-function showAdm(){document.getElementById('admGate').classList.add('hidden');document.getElementById('admMain').classList.remove('hidden');admLoad();}
-async function admLogin(){
-  try{const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:document.getElementById('admPwd').value})});admState.token=r.token;localStorage.setItem('admToken',r.token);showAdm();}
-  catch(e){showMsg('admGateMsg',e,'err');}
-}
-async function admLoad(){
-  if(!admState.token)return;
-  try{
-    const d=await api('/api/admin/data?token='+admState.token);
-    admState.data=d;
-    const m=getYearMonth('adm');admState.month=m;
-    if(!d.schedules[m])d.schedules[m]={};
-    admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
-    renderAdmGrid();
-    showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+Object.keys(d.schedules[m]).length+' 人已提交）','ok');
-  }catch(e){showMsg('admMsg',e,'err');}
-}
-function gcellHtml(v){const cls=v?'gcell '+v:'';const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';return `<div class="${cls}">${t}</div>`;}
-function renderAdmGrid(){
-  const names=CONFIG.employees.map(e=>e.name);
-  const n=daysIn(admState.month);
-  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++)h+=`<th>${d}</th>`;
-  h+='</tr></thead><tbody>';
-  names.forEach(name=>{
-    const s=admState.draft[name]||{};
-    const rest=Object.values(s).filter(v=>v==='rest').length;
-    const bad=rest!==CONFIG.restDaysPerMonth;
-    h+=`<tr><td class="emp${bad?' bad':''}">${name}${bad?' ('+rest+')':''}</td>`;
-    for(let d=1;d<=n;d++){const v=s[d]||'';h+=`<td onclick="admSet('${name}',${d})">${gcellHtml(v)}</td>`;}
-    h+='</tr>';
-  });
-  h+='</tbody></table>';
-  document.getElementById('admGrid').innerHTML=h;
-}
-function admSet(name,d){admState.draft[name]=admState.draft[name]||{};admState.draft[name][d]=cycle(admState.draft[name][d]||'');renderAdmGrid();}
-function cycle(v){return v==='early'?'late':v==='late'?'rest':v==='rest'?'early':'';}
-async function admSaveAll(){
-  try{
-    for(const name of Object.keys(admState.draft)){
-      await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:name,schedule:admState.draft[name]})});
-    }
-    showMsg('admMsg','已保存 '+monthLabel(admState.month)+' 排班','ok');
-  }catch(e){showMsg('admMsg',e,'err');}
-}
-function admExport(){window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month,'_blank');}
-
-/* ---------- 设置 ---------- */
-async function openSettings(){
-  try{
-    const d=await api('/api/admin/data?token='+admState.token);
-    document.getElementById('setCompany').value=d.config.company;
-    document.getElementById('setEarly').value=d.config.earlyShift;
-    document.getElementById('setLate').value=d.config.lateShift;
-    document.getElementById('setRest').value=d.config.restDaysPerMonth;
-    document.getElementById('setPwd').value='';
-    const box=document.getElementById('setEmps');box.innerHTML='';
-    d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
-    document.getElementById('setOverlay').classList.remove('hidden');
-  }catch(e){showMsg('admMsg',e,'err');}
-}
-function addEmpRow(name,pwd){const box=document.getElementById('setEmps');const row=document.createElement('div');row.className='emp-row';row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`;box.appendChild(row);}
-function closeSettings(){document.getElementById('setOverlay').classList.add('hidden');}
-async function saveSettings(){
-  const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
-  const cfg={company:document.getElementById('setCompany').value,earlyShift:document.getElementById('setEarly').value,lateShift:document.getElementById('setLate').value,restDaysPerMonth:Number(document.getElementById('setRest').value),employees:emps,adminPassword:document.getElementById('setPwd').value};
-  try{await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})});showMsg('setMsg','设置已保存，正在刷新…','ok');await loadConfig();setTimeout(closeSettings,600);}
-  catch(e){showMsg('setMsg',e,'err');}
 }
 
 document.getElementById('btnEmpLoad').disabled=true;
