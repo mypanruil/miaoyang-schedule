@@ -72,6 +72,19 @@
   .hidden{display:none}
   footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
 
+  /* ---------- 全员排班总览 ---------- */
+  .all-table{border-collapse:collapse;width:100%;font-size:12px;min-width:620px;margin-top:4px}
+  .all-table th,.all-table td{border:1px solid var(--line);padding:4px 2px;text-align:center;min-width:20px}
+  .all-table thead th{background:#f0f2f5;font-weight:600;line-height:1.2}
+  .all-table th.sticky,.all-table td.sticky{position:sticky;left:0;background:#fff;z-index:2;font-weight:600;text-align:left;padding-left:8px;min-width:64px}
+  .all-table thead th.sticky{background:#f0f2f5}
+  .all-table td.early{background:var(--earlybg);color:var(--early);font-weight:600}
+  .all-table td.late{background:var(--latebg);color:var(--late);font-weight:600}
+  .all-table td.rest{background:var(--restbg);color:var(--rest);font-weight:600}
+  .all-table .wd-h{font-size:10px;color:var(--mut);font-weight:400}
+  .all-table tbody tr:nth-child(even) td.sticky{background:#fafafa}
+  .all-table tbody tr:nth-child(even){background:#fafafa}
+
   /* ---------- 移动端优化 ---------- */
   @media (max-width:640px){
     body{font-size:15px}
@@ -173,6 +186,28 @@
     </div>
   </section>
 
+  <!-- 全员排班总览 -->
+  <section id="secAll">
+    <div class="card">
+      <div class="card-title">
+        本月全员排班总览
+        <span class="meta" id="allMeta">管理员汇总后此处实时更新</span>
+      </div>
+      <div class="row">
+        <div class="field sm">
+          <label>查看月份</label>
+          <div class="month-picker">
+            <select id="allYear" onchange="loadAll()"></select>
+            <select id="allMonth" onchange="loadAll()"></select>
+          </div>
+        </div>
+        <div class="actions"><button class="ghost" onclick="loadAll()">刷新</button></div>
+      </div>
+      <div id="allMsg" class="msg"></div>
+      <div class="cal" id="allCal"></div>
+    </div>
+  </section>
+
   <footer id="footNote"></footer>
 </div>
 
@@ -203,7 +238,9 @@ async function loadConfig(){
   CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
+  fillYearMonth('all', curMonth(new Date()));
   document.getElementById('empSubmit').disabled=false;
+  loadAll();
 }
 function updatePinBox(){
   const sel=document.getElementById('empSel');
@@ -276,7 +313,46 @@ async function empSubmit(){
   try{
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
+    loadAll();
   }catch(e){showMsg('empMsg',e,'err');}
+}
+
+/* ---------- 全员排班总览 ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function getAllMonth(){return document.getElementById('allYear').value+'-'+document.getElementById('allMonth').value;}
+async function loadAll(){
+  if(!CONFIG){return;}
+  const month=getAllMonth();
+  try{
+    const s=await api('/api/summary?month='+month);
+    document.getElementById('allMeta').textContent=monthLabel(month)+' ｜ 共 '+s.employees.length+' 人';
+    renderAllTable(s);
+  }catch(e){showMsg('allMsg',e,'err');}
+}
+function renderAllTable(s){
+  if(!s.employees||!s.employees.length){document.getElementById('allCal').innerHTML='<div class="hint">暂无排班数据</div>';return;}
+  const n=s.days;
+  const wd=['一','二','三','四','五','六','日'];
+  let h='<div style="overflow-x:auto"><table class="all-table"><thead><tr><th class="sticky">员工</th>';
+  for(let d=1;d<=n;d++){
+    const dt=new Date(s.month.split('-')[0],s.month.split('-')[1]-1,d);
+    const w=wd[(dt.getDay()+6)%7];
+    h+='<th>'+d+'<br><span class="wd-h">'+w+'</span></th>';
+  }
+  h+='</tr></thead><tbody>';
+  s.employees.forEach(name=>{
+    const sc=s.schedules[name]||{};
+    h+='<tr><td class="sticky">'+esc(name)+'</td>';
+    for(let d=1;d<=n;d++){
+      const v=sc[String(d)]||'';
+      const cls=v==='rest'?'rest':v==='early'?'early':v==='late'?'late':'';
+      const txt=v==='rest'?'休':v==='early'?'早':v==='late'?'晚':'';
+      h+='<td class="'+cls+'">'+txt+'</td>';
+    }
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  document.getElementById('allCal').innerHTML=h;
 }
 
 document.getElementById('btnEmpLoad').disabled=true;
