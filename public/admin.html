@@ -73,6 +73,23 @@
   .gcell.late{background:var(--latebg);color:var(--late)}
   .gcell.rest{background:var(--restbg);color:var(--rest)}
 
+  /* 汇总界面增强 */
+  .emp-stats{display:flex;gap:4px;margin:6px 0 7px;flex-wrap:wrap}
+  .emp-stats .es{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;line-height:1.6}
+  .emp-stats .es.early{background:var(--earlybg);color:var(--early)}
+  .emp-stats .es.late{background:var(--latebg);color:var(--late)}
+  .emp-stats .es.rest{background:var(--restbg);color:var(--rest)}
+  .emp-stats .es.over{background:#fee2e2;color:var(--err)}
+  .notsub{font-size:11px;color:var(--mut);font-style:italic;margin-bottom:6px}
+  th .wk{display:block;font-size:10px;font-weight:500;margin-top:2px;opacity:.7}
+  th.wkend,td.wkend{background:#fff7ed}
+  th.wkend .wk,td.wkend .wk{color:var(--late);opacity:1}
+  .summary-bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center;background:linear-gradient(120deg,#eff6ff,#f8fafc);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-bottom:14px;font-size:13px}
+  .summary-bar b{font-size:16px}
+  .summary-bar .sb-item{display:flex;flex-direction:column;line-height:1.35}
+  .summary-bar .sb-item span{color:var(--mut);font-size:11px}
+  .summary-bar .sb-miss{color:var(--err);font-weight:600}
+
   .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;backdrop-filter:blur(2px)}
   .overlay .card{max-width:560px;width:100%;max-height:90vh;overflow:auto;margin:0}
   .emp-row{display:flex;gap:8px;margin:6px 0}
@@ -105,6 +122,7 @@
   .mcell.early{background:var(--earlybg);color:var(--early);border-color:var(--early)}
   .mcell.late{background:var(--latebg);color:var(--late);border-color:var(--late)}
   .mcell.rest{background:var(--restbg);color:var(--rest);border-color:var(--rest)}
+  .mcell.wkend{background:#fff7ed;border-color:#fed7aa}
 
   @media (max-width:640px){
     body{font-size:15px}
@@ -175,7 +193,7 @@
           <span><i class="le"></i>早班</span>
           <span><i class="ll"></i>晚班</span>
           <span><i class="lr"></i>休息</span>
-          <span style="color:var(--err)">标红 = 休息天数异常</span>
+          <span style="color:var(--err)">标红 = 休息超过设定上限</span>
         </div>
         <div class="row">
           <div class="field sm">
@@ -190,6 +208,7 @@
             <button class="ghost" onclick="openSettings()">基础设置</button>
           </div>
         </div>
+        <div id="admSummary" class="summary-bar"></div>
         <div id="admMsg" class="msg"></div>
         <div class="agrid" id="admGrid"></div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
@@ -294,25 +313,40 @@ async function admLoad(){
     renderAdmGrid();
     const submitted=Object.keys(d.schedules[m]).length;
     const total=CONFIG.employees.length;
+    let E=0,L=0,R=0;const miss=[];
+    CONFIG.employees.forEach(e=>{const s=d.schedules[m][e.name]||{};if(!Object.keys(s).length){miss.push(e.name);return;}const c=counts(s);E+=c.e;L+=c.l;R+=c.r;});
     const st=document.getElementById('admStat'); if(st)st.textContent='已提交 '+submitted+' / '+total+' 人';
+    const sb=document.getElementById('admSummary');
+    if(sb)sb.innerHTML=`<div class="sb-item"><b>${submitted}/${total}</b><span>已提交</span></div>`+
+      `<div class="sb-item"><b style="color:var(--early)">${E}</b><span>早班合计</span></div>`+
+      `<div class="sb-item"><b style="color:var(--late)">${L}</b><span>晚班合计</span></div>`+
+      `<div class="sb-item"><b style="color:var(--rest)">${R}</b><span>休息合计</span></div>`+
+      (miss.length?`<div class="sb-item sb-miss"><b>${miss.length} 人</b><span>未提交：${miss.join('、')}</span></div>`:`<div class="sb-item"><b style="color:var(--ok)">全部</b><span>均已提交</span></div>`);
     showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+submitted+' 人已提交）','ok');
   }catch(e){showMsg('admMsg',e,'err');}
 }
 function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
 function gcellHtml(v){const cls=v?'gcell '+v:'';const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';return `<div class="${cls}">${t}</div>`;}
+function counts(s){let e=0,l=0,r=0;Object.values(s).forEach(v=>{if(v==='early')e++;else if(v==='late')l++;else if(v==='rest')r++;});return {e,l,r};}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderAdmGrid(){
   if(isMobile())return renderAdmMobile();
   const names=CONFIG.employees.map(e=>e.name);
   const n=daysIn(admState.month);
+  const off=firstOffset(admState.month);
+  const wd=['一','二','三','四','五','六','日'];
   let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++)h+=`<th>${d}</th>`;
+  for(let d=1;d<=n;d++){const w=(off+d-1)%7;const wk=w===5||w===6?' wkend':'';h+=`<th class="${wk}">${d}<span class="wk">${wd[w]}</span></th>`;}
   h+='</tr></thead><tbody>';
   names.forEach(name=>{
     const s=admState.draft[name]||{};
-    const rest=Object.values(s).filter(v=>v==='rest').length;
-    const bad=rest!==CONFIG.restDaysPerMonth;
-    h+=`<tr><td class="emp${bad?' bad':''}"><div class="empname">${name}${bad?' ('+rest+')':''}</div><button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button></td>`;
-    for(let d=1;d<=n;d++){const v=s[d]||'';h+=`<td onclick="admSet('${name}',${d})">${gcellHtml(v)}</td>`;}
+    const submitted=Object.keys(s).length>0;
+    const c=counts(s);
+    const over=c.r>CONFIG.restDaysPerMonth;
+    const stats=`<div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>`;
+    const sub=submitted?'':`<div class="notsub">未提交</div>`;
+    h+=`<tr><td class="emp${over?' bad':''}"><div class="empname">${escHtml(name)}</div>${stats}${sub}<button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button></td>`;
+    for(let d=1;d<=n;d++){const v=s[d]||'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';h+=`<td class="${wkcls}" onclick="admSet('${escAttr(name)}',${d})">${gcellHtml(v)}</td>`;}
     h+='</tr>';
   });
   h+='</tbody></table>';
@@ -326,16 +360,20 @@ function renderAdmMobile(){
   let h='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
   names.forEach(name=>{
     const s=admState.draft[name]||{};
-    const rest=Object.values(s).filter(v=>v==='rest').length;
-    const bad=rest!==CONFIG.restDaysPerMonth;
+    const submitted=Object.keys(s).length>0;
+    const c=counts(s);
+    const over=c.r>CONFIG.restDaysPerMonth;
+    const bad=over;
     let cells='';
     for(let i=0;i<off;i++)cells+='<span class="mcell empty"></span>';
-    for(let d=1;d<=n;d++){const v=s[d]||'';const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';cells+=`<span class="mcell ${v}" onclick="admSet('${name}',${d})"><b>${d}</b><i>${t}</i></span>`;}
+    for(let d=1;d<=n;d++){const v=s[d]||'';const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';cells+=`<span class="mcell ${v}${wkcls}" onclick="admSet('${escAttr(name)}',${d})"><b>${d}</b><i>${t}</i></span>`;}
+    let tag=bad?` <span class="mbad">休${c.r}天超${CONFIG.restDaysPerMonth}</span>`:(submitted?'':` <span class="mbad" style="color:var(--mut)">未提交</span>`);
     h+=`<div class="mcard${bad?' bad':''}">
       <div class="mcard-head">
-        <div class="mname">${name}${bad?` <span class="mbad">休${rest}天</span>`:''}</div>
+        <div class="mname">${escHtml(name)}${tag}</div>
         <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
       </div>
+      <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
       <div class="mcal">${cells}</div>
     </div>`;
   });
