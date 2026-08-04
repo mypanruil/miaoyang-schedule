@@ -136,7 +136,7 @@
           </div>
         </div>
         <div class="actions">
-          <button onclick="empLoad()">加载我的排班</button>
+          <button id="btnEmpLoad" onclick="empLoad()">加载我的排班</button>
           <button class="ghost" onclick="empClear()">清空重填</button>
         </div>
       </div>
@@ -246,6 +246,7 @@ function showMsg(id,text,kind){const el=document.getElementById(id);el.className
 
 async function loadConfig(){
   CONFIG=await api('/api/config');
+  if(!CONFIG)throw new Error('配置加载失败');
   document.getElementById('brandSub').textContent=CONFIG.company;
   document.getElementById('empMeta').innerHTML='早班 '+CONFIG.earlyShift+' &nbsp; 晚班 '+CONFIG.lateShift+' &nbsp; 每月休息 '+CONFIG.restDaysPerMonth+' 天';
   document.getElementById('lgEarly').textContent=CONFIG.earlyShift;
@@ -258,6 +259,7 @@ async function loadConfig(){
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
   fillYearMonth('adm',admState.month);
+  document.getElementById('empSubmit').disabled=false;
   if(admState.token)try{await api('/api/admin/data?token='+admState.token);showAdm();}catch(e){localStorage.removeItem('admToken');admState.token='';}
 }
 function updatePinBox(){
@@ -290,8 +292,10 @@ function switchTab(t){
 function onEmpMonthChange(){empState.month=getYearMonth('emp');}
 function empClear(){empState.schedule={};renderEmpCal();showMsg('empMsg','已清空，请重新选择','info');}
 async function empLoad(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   empState.month=getYearMonth('emp');
   const emp=document.getElementById('empSel').value;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
     const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
     empState.schedule=r.schedule||{};
@@ -305,6 +309,7 @@ function optHtml(d){
   return `<select onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候再试','err');return;}
   const n=daysIn(empState.month);
   const off=firstOffset(empState.month);
   const wd=['一','二','三','四','五','六','日'];
@@ -327,8 +332,10 @@ function renderEmpCal(){
 }
 function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   const emp=document.getElementById('empSel').value;
   const pin=document.getElementById('empPin').value||'';
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
@@ -407,7 +414,8 @@ async function saveSettings(){
 }
 
 buildMonthsPool();
-loadConfig().catch(e=>showMsg('empMsg',e,'err'));
+document.getElementById('btnEmpLoad').disabled=true;
+loadConfig().then(()=>{document.getElementById('btnEmpLoad').disabled=false;}).catch(e=>showMsg('empMsg',e,'err'));
 </script>
 </body>
 </html>
