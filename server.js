@@ -18,7 +18,6 @@ const DEFAULT_CONFIG = {
   earlyShift: '09:00-17:00',
   lateShift: '10:00-19:00',
   restDaysPerMonth: 5,
-  editLockDays: 7,
   adminPassword: 'admin123',
   employees: Array.from({ length: 12 }, (_, i) => ({ name: '员工' + String(i + 1).padStart(2, '0'), pin: '' }))
 };
@@ -72,7 +71,6 @@ function publicConfig() {
     earlyShift: DATA.config.earlyShift,
     lateShift: DATA.config.lateShift,
     restDaysPerMonth: DATA.config.restDaysPerMonth,
-    editLockDays: DATA.config.editLockDays,
     employees: DATA.config.employees.map(e => ({ name: e.name, hasPin: !!(e.pin && e.pin.length) }))
   };
 }
@@ -84,12 +82,9 @@ function countRest(schedule) {
   return Object.values(schedule || {}).filter(v => v === 'rest').length;
 }
 function lockInfo(emp) {
+  // 员工提交后可随时更改，不再锁定；仅记录最后提交时间供参考
   const last = DATA.lastSubmitted[emp];
-  if (!last) return { locked: false, nextEdit: null };
-  const lockMs = DATA.config.editLockDays * 86400000;
-  const next = new Date(new Date(last).getTime() + lockMs);
-  if (Date.now() < next.getTime()) return { locked: true, nextEdit: next.toISOString() };
-  return { locked: false, nextEdit: null };
+  return { locked: false, lastEdit: last || null };
 }
 
 const server = http.createServer((req, res) => {
@@ -120,15 +115,13 @@ const server = http.createServer((req, res) => {
       const empCfg = DATA.config.employees.find(e => e.name === emp);
       if (!empCfg) return sendJson(res, 400, { error: '员工不存在' });
       if (empCfg.pin && empCfg.pin.length && String(pin) !== empCfg.pin) return sendJson(res, 403, { error: 'PIN 不正确' });
-      const li = lockInfo(emp);
-      if (li.locked) return sendJson(res, 429, { error: '本周已提交，暂不可修改', nextEdit: li.nextEdit });
       const rest = countRest(schedule);
       if (rest !== DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数必须为 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
       DATA.schedules[month] = DATA.schedules[month] || {};
       DATA.schedules[month][emp] = schedule;
       DATA.lastSubmitted[emp] = new Date().toISOString();
       saveData(DATA);
-      return sendJson(res, 200, { ok: true, nextEdit: lockInfo(emp).nextEdit, restDays: rest });
+      return sendJson(res, 200, { ok: true, lastEdit: lockInfo(emp).lastEdit, restDays: rest });
     });
   }
 
@@ -178,7 +171,6 @@ const server = http.createServer((req, res) => {
       if (typeof c.earlyShift === 'string') DATA.config.earlyShift = c.earlyShift;
       if (typeof c.lateShift === 'string') DATA.config.lateShift = c.lateShift;
       if (Number.isInteger(c.restDaysPerMonth)) DATA.config.restDaysPerMonth = c.restDaysPerMonth;
-      if (Number.isInteger(c.editLockDays)) DATA.config.editLockDays = c.editLockDays;
       if (Array.isArray(c.employees)) {
         DATA.config.employees = c.employees.map(e => ({ name: String(e.name || '').trim() || '未命名', pin: String(e.pin || '') }));
       }

@@ -141,7 +141,6 @@
     </div>
     <div class="row">
       <div><label>每月休息天数</label><input id="setRest" type="number"></div>
-      <div><label>修改锁定(天)</label><input id="setLock" type="number"></div>
     </div>
     <label>管理员密码(留空不修改)</label><input id="setPwd" type="password" placeholder="新密码">
     <label>员工名单（姓名 / PIN，PIN 可空）</label>
@@ -208,9 +207,7 @@ async function empLoad(){
   try{
     const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+month);
     empState.schedule=r.schedule||{};
-    const lock=document.getElementById('empLock');
-    if(r.locked){ lock.classList.remove('hidden'); lock.textContent='本周已提交，下次可修改时间：'+new Date(r.nextEdit).toLocaleString('zh-CN'); document.getElementById('empSubmit').disabled=true; }
-    else { lock.classList.add('hidden'); document.getElementById('empSubmit').disabled=false; }
+    if(r.lastEdit){ const lock=document.getElementById('empLock'); lock.classList.remove('hidden'); lock.textContent='上次提交时间：'+new Date(r.lastEdit).toLocaleString('zh-CN')+'（可随时修改）'; }
     renderEmpCal();
     showMsg('empMsg','已加载'+emp+' 的排班','ok');
   }catch(e){ showMsg('empMsg',e,'err'); }
@@ -237,10 +234,9 @@ async function empSubmit(){
   const pin=document.getElementById('empPin').value||'';
   try{
     const r=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month,schedule:empState.schedule})});
-    showMsg('empMsg','提交成功！本周内不可再改，下次可改：'+new Date(r.nextEdit).toLocaleString('zh-CN'),'ok');
-    document.getElementById('empLock').classList.remove('hidden');
-    document.getElementById('empLock').textContent='本周已提交，下次可修改时间：'+new Date(r.nextEdit).toLocaleString('zh-CN');
-    document.getElementById('empSubmit').disabled=true;
+    showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
+    const lock=document.getElementById('empLock'); lock.classList.remove('hidden');
+    lock.textContent='上次提交时间：'+new Date().toLocaleString('zh-CN')+'（可随时修改）';
   }catch(e){ showMsg('empMsg',e,'err'); }
 }
 
@@ -300,7 +296,6 @@ async function openSettings(){
     document.getElementById('setEarly').value=d.config.earlyShift;
     document.getElementById('setLate').value=d.config.lateShift;
     document.getElementById('setRest').value=d.config.restDaysPerMonth;
-    document.getElementById('setLock').value=d.config.editLockDays;
     document.getElementById('setPwd').value='';
     const box=document.getElementById('setEmps'); box.innerHTML='';
     d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
@@ -311,7 +306,7 @@ function addEmpRow(name,pwd){ const box=document.getElementById('setEmps'); cons
 function closeSettings(){ document.getElementById('setOverlay').classList.add('hidden'); }
 async function saveSettings(){
   const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
-  const cfg={ company:document.getElementById('setCompany').value, earlyShift:document.getElementById('setEarly').value, lateShift:document.getElementById('setLate').value, restDaysPerMonth:Number(document.getElementById('setRest').value), editLockDays:Number(document.getElementById('setLock').value), employees:emps, adminPassword:document.getElementById('setPwd').value };
+  const cfg={ company:document.getElementById('setCompany').value, earlyShift:document.getElementById('setEarly').value, lateShift:document.getElementById('setLate').value, restDaysPerMonth:Number(document.getElementById('setRest').value), employees:emps, adminPassword:document.getElementById('setPwd').value };
   try{ await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})}); showMsg('setMsg','设置已保存，正在刷新…','ok'); await loadConfig(); setTimeout(closeSettings,600); }
   catch(e){ showMsg('setMsg',e,'err'); }
 }
