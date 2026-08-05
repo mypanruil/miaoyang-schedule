@@ -124,6 +124,26 @@
   .mcell.rest{background:var(--restbg);color:var(--rest);border-color:var(--rest)}
   .mcell.wkend{background:#fff7ed;border-color:#fed7aa}
 
+  /* 标签页 */
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{padding:9px 18px;border-radius:10px;background:#e5e7eb;color:var(--mut);font-weight:700;cursor:pointer;border:none;font-size:14px;transition:.12s}
+  .tab.active{background:var(--primary);color:#fff}
+  .tab:hover{filter:brightness(.97)}
+
+  /* 统计分析 */
+  .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:6px}
+  .stat-box{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .stat-box h4{margin:0 0 10px;font-size:14px;color:var(--txt)}
+  .chart-wrap{position:relative;height:260px}
+  .stat-kpi{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi{background:linear-gradient(120deg,#eff6ff,#f8fafc);border:1px solid var(--line);border-radius:12px;padding:12px 16px;flex:1 1 120px}
+  .kpi b{font-size:22px;display:block}
+  .kpi span{font-size:12px;color:var(--mut)}
+  .kpi.e b{color:var(--early)} .kpi.l b{color:var(--late)} .kpi.r b{color:var(--rest)}
+  .kpi.sub b{color:var(--ok)} .kpi.miss b{color:var(--err)}
+  table.stat-tbl{margin-top:6px;font-size:13px}
+  table.stat-tbl th,table.stat-tbl td{padding:8px 6px}
+  table.stat-tbl td.over{color:var(--err);font-weight:700}
   @media (max-width:640px){
     body{font-size:15px}
     .topbar{padding:12px 0}
@@ -155,8 +175,10 @@
     .overlay .card{max-width:100%;max-height:92vh;border-radius:16px 16px 0 0;padding:18px}
     .emp-row{flex-direction:row}
     .emp-row input{flex:1;min-width:0}
+    .stats-grid{grid-template-columns:1fr}
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -187,7 +209,11 @@
       </div>
 
     <div id="admMain" class="hidden">
-      <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="tabSum" onclick="switchTab('sum')">排班汇总</button>
+        <button class="tab" id="tabStats" onclick="switchTab('stats')">统计分析</button>
+      </div>
+      <div id="cardSum" class="card">
         <div class="card-title">管理员汇总 <span class="meta" id="admStat"></span></div>
         <div class="legend">
           <span><i class="le"></i>早班</span>
@@ -216,6 +242,37 @@
           <button onclick="admExport()">导出 PDF</button>
         </div>
       </div>
+
+      <div id="cardStats" class="card hidden">
+        <div class="card-title">统计分析 <span class="meta" id="statsMeta"></span></div>
+        <div class="legend">
+          <span><i class="le"></i>早班</span>
+          <span><i class="ll"></i>晚班</span>
+          <span><i class="lr"></i>休息</span>
+        </div>
+        <div id="statsMsg" class="msg"></div>
+        <div class="stat-kpi" id="statsKpi"></div>
+        <div class="stats-grid">
+          <div class="stat-box"><h4>班次总体占比</h4><div class="chart-wrap"><canvas id="chartPie"></canvas></div></div>
+          <div class="stat-box"><h4>员工班次对比（早 / 晚 / 休）</h4><div class="chart-wrap"><canvas id="chartEmp"></canvas></div></div>
+          <div class="stat-box"><h4>每日班次分布</h4><div class="chart-wrap"><canvas id="chartDay"></canvas></div></div>
+          <div class="stat-box"><h4>各员工休息天数（红 = 超上限）</h4><div class="chart-wrap"><canvas id="chartRest"></canvas></div></div>
+          <div class="stat-box"><h4>工作日 vs 周末班次</h4><div class="chart-wrap"><canvas id="chartWe"></canvas></div></div>
+          <div class="stat-box"><h4>休息天数人数分布</h4><div class="chart-wrap"><canvas id="chartRestDist"></canvas></div></div>
+        </div>
+        <div style="margin-top:18px">
+          <div class="card-title" style="font-size:15px">明细表</div>
+          <div class="agrid">
+            <table class="stat-tbl" id="statsTable"></table>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="ok" onclick="exportStatsCSV()">导出 CSV</button>
+          <button onclick="exportStatsPNG()">导出图表 PNG</button>
+          <button onclick="exportStatsPDF()">导出 PDF 报告</button>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -323,6 +380,7 @@ async function admLoad(){
       `<div class="sb-item"><b style="color:var(--rest)">${R}</b><span>休息合计</span></div>`+
       (miss.length?`<div class="sb-item sb-miss"><b>${miss.length} 人</b><span>未提交：${miss.join('、')}</span></div>`:`<div class="sb-item"><b style="color:var(--ok)">全部</b><span>均已提交</span></div>`);
     showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+submitted+' 人已提交）','ok');
+    if(!document.getElementById('cardStats').classList.contains('hidden'))renderStats();
   }catch(e){showMsg('admMsg',e,'err');}
 }
 function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
@@ -438,6 +496,125 @@ async function saveSettings(){
   const cfg={company:document.getElementById('setCompany').value,earlyShift:document.getElementById('setEarly').value,lateShift:document.getElementById('setLate').value,restDaysPerMonth:Number(document.getElementById('setRest').value),employees:emps,adminPassword:document.getElementById('setPwd').value};
   try{await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})});showMsg('setMsg','设置已保存，正在刷新…','ok');await loadConfig();setTimeout(closeSettings,600);}
   catch(e){showMsg('setMsg',e,'err');}
+}
+
+/* ---------- 统计分析 + 导出 ---------- */
+let statsData=null;
+const chartMap={};
+function switchTab(t){
+  document.getElementById('tabSum').classList.toggle('active',t==='sum');
+  document.getElementById('tabStats').classList.toggle('active',t==='stats');
+  document.getElementById('cardSum').classList.toggle('hidden',t!=='sum');
+  document.getElementById('cardStats').classList.toggle('hidden',t!=='stats');
+  if(t==='stats')renderStats();
+}
+async function renderStats(){
+  if(!admState.token)return;
+  try{
+    const m=admState.month;
+    const d=await api('/api/admin/stats?token='+admState.token+'&month='+m);
+    statsData=d;
+    const meta=document.getElementById('statsMeta'); if(meta)meta.textContent=monthLabel(m)+' ｜ 已提交 '+d.submitted+' / '+d.total;
+    renderStatsKpi(d);
+    renderStatsCharts(d);
+    renderStatsTable(d);
+    showMsg('statsMsg','已生成 '+monthLabel(m)+' 多维度统计','ok');
+  }catch(e){showMsg('statsMsg',e,'err');}
+}
+function renderStatsKpi(d){
+  const el=document.getElementById('statsKpi');
+  el.innerHTML=
+    `<div class="kpi e"><b>${d.totals.early}</b><span>早班总次数</span></div>`+
+    `<div class="kpi l"><b>${d.totals.late}</b><span>晚班总次数</span></div>`+
+    `<div class="kpi r"><b>${d.totals.rest}</b><span>休息总天数</span></div>`+
+    `<div class="kpi sub"><b>${d.submitted}/${d.total}</b><span>已提交</span></div>`+
+    `<div class="kpi miss"><b>${d.total-d.submitted}</b><span>未提交</span></div>`;
+}
+function destroyCharts(){Object.keys(chartMap).forEach(k=>{if(chartMap[k]){chartMap[k].destroy();delete chartMap[k];}});}
+function renderStatsCharts(d){
+  if(typeof Chart==='undefined'){showMsg('statsMsg','图表库加载失败（可能离线），仍可导出 CSV / PDF 文本','err');return;}
+  destroyCharts();
+  const C={early:'#2563eb',late:'#d97706',rest:'#9ca3af'};
+  chartMap.pie=new Chart(document.getElementById('chartPie'),{type:'doughnut',data:{labels:['早班','晚班','休息'],datasets:[{data:[d.totals.early,d.totals.late,d.totals.rest],backgroundColor:[C.early,C.late,C.rest]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  const names=d.perEmployee.map(e=>e.name);
+  chartMap.emp=new Chart(document.getElementById('chartEmp'),{type:'bar',data:{labels:names,datasets:[{label:'早班',data:d.perEmployee.map(e=>e.early),backgroundColor:C.early},{label:'晚班',data:d.perEmployee.map(e=>e.late),backgroundColor:C.late},{label:'休息',data:d.perEmployee.map(e=>e.rest),backgroundColor:C.rest}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
+  chartMap.day=new Chart(document.getElementById('chartDay'),{type:'bar',data:{labels:d.perDay.map(x=>x.day),datasets:[{label:'早班',data:d.perDay.map(x=>x.early),backgroundColor:C.early},{label:'晚班',data:d.perDay.map(x=>x.late),backgroundColor:C.late},{label:'休息',data:d.perDay.map(x=>x.rest),backgroundColor:C.rest}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
+  chartMap.rest=new Chart(document.getElementById('chartRest'),{type:'bar',data:{labels:names,datasets:[{label:'休息天数',data:d.perEmployee.map(e=>e.rest),backgroundColor:d.perEmployee.map(e=>e.overRest?'#ef4444':'#86efac')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  chartMap.we=new Chart(document.getElementById('chartWe'),{type:'bar',data:{labels:['工作日','周末'],datasets:[{label:'早班',data:[d.weekday.early,d.weekend.early],backgroundColor:C.early},{label:'晚班',data:[d.weekday.late,d.weekend.late],backgroundColor:C.late},{label:'休息',data:[d.weekday.rest,d.weekend.rest],backgroundColor:C.rest}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
+  const rk=Object.keys(d.restDist).map(Number).sort((a,b)=>a-b);
+  chartMap.restDist=new Chart(document.getElementById('chartRestDist'),{type:'bar',data:{labels:rk.map(x=>x+' 天'),datasets:[{label:'人数',data:rk.map(x=>d.restDist[x]),backgroundColor:'#86efac'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+}
+function renderStatsTable(d){
+  const head='<thead><tr><th>员工</th><th>早班</th><th>晚班</th><th>休息</th><th>是否超上限</th><th>已提交</th></tr></thead>';
+  let body='<tbody>';
+  d.perEmployee.forEach(e=>{
+    body+=`<tr><td class="emp" style="position:static;min-width:0">${escHtml(e.name)}</td><td>${e.early}</td><td>${e.late}</td><td>${e.rest}</td><td class="${e.overRest?'over':''}">${e.overRest?'超'+d.config.restDaysPerMonth+'天':''}</td><td>${e.submitted?'是':'否'}</td></tr>`;
+  });
+  body+=`<tr style="font-weight:700"><td>合计</td><td>${d.totals.early}</td><td>${d.totals.late}</td><td>${d.totals.rest}</td><td></td><td>${d.submitted}/${d.total}</td></tr>`;
+  body+='</tbody>';
+  document.getElementById('statsTable').innerHTML=head+body;
+}
+function exportStatsCSV(){
+  if(!statsData){showMsg('statsMsg','请先生成统计','err');return;}
+  const d=statsData;
+  const rows=[['员工','早班','晚班','休息','是否超上限','已提交']];
+  d.perEmployee.forEach(e=>rows.push([e.name,e.early,e.late,e.rest,e.overRest?'超'+d.config.restDaysPerMonth+'天':'否',e.submitted?'是':'否']));
+  rows.push(['合计',d.totals.early,d.totals.late,d.totals.rest,'',d.submitted+'/'+d.total]);
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='排班统计_'+d.month+'.csv';document.body.appendChild(a);a.click();a.remove();
+}
+function exportStatsPNG(){
+  if(!statsData){showMsg('statsMsg','请先生成统计','err');return;}
+  if(typeof Chart==='undefined'){showMsg('statsMsg','图表库未加载，无法导出图片','err');return;}
+  const map={pie:'班次占比',emp:'员工对比',day:'每日分布',rest:'休息天数',we:'工作日周末',restDist:'休息分布'};
+  let i=0;
+  Object.keys(map).forEach(k=>{
+    const ch=chartMap[k]; if(!ch)return;
+    const url=ch.toBase64Image('image/png',1);
+    setTimeout(()=>{const a=document.createElement('a');a.href=url;a.download='排班统计_'+statsData.month+'_'+map[k]+'.png';document.body.appendChild(a);a.click();a.remove();},i*350);
+    i++;
+  });
+  showMsg('statsMsg','正在下载各图表 PNG…','ok');
+}
+function exportStatsPDF(){
+  if(!statsData){showMsg('statsMsg','请先生成统计','err');return;}
+  const d=statsData;
+  const imgs={};
+  Object.keys(chartMap).forEach(k=>{if(chartMap[k])imgs[k]=chartMap[k].toBase64Image('image/png',1);});
+  let tr='';
+  d.perEmployee.forEach(e=>{tr+=`<tr><td>${escHtml(e.name)}</td><td>${e.early}</td><td>${e.late}</td><td>${e.rest}</td><td>${e.overRest?'超'+d.config.restDaysPerMonth+'天':'否'}</td><td>${e.submitted?'是':'否'}</td></tr>`;});
+  tr+=`<tr style="font-weight:700"><td>合计</td><td>${d.totals.early}</td><td>${d.totals.late}</td><td>${d.totals.rest}</td><td></td><td>${d.submitted}/${d.total}</td></tr>`;
+  const w=window.open('','_blank');
+  if(!w){showMsg('statsMsg','浏览器拦截了弹窗，请允许弹窗后重试','err');return;}
+  w.document.write('<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>排班统计报告</title>'+
+  '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:24px;color:#1f2937}'+
+  'h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 8px}'+
+  '.meta{color:#6b7280;font-size:13px;margin-bottom:8px}'+
+  '.kpi{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}'+
+  '.kpi div{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 14px;font-size:13px}'+
+  '.kpi b{font-size:18px}'+
+  '.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}'+
+  '.charts div{border:1px solid #e5e7eb;border-radius:10px;padding:8px}'+
+  '.charts img{width:100%}'+
+  'table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}'+
+  'th,td{border:1px solid #bbb;padding:6px;text-align:center}'+
+  'th{background:#f0f0f0}'+
+  '@media print{.noprint{display:none}}@media(max-width:600px){.charts{grid-template-columns:1fr}}'+
+  '</style></head><body>'+
+  '<h1>'+escHtml(d.config.company)+' 排班统计报告</h1>'+
+  '<div class="meta">'+monthLabel(d.month)+' ｜ 早班 '+d.config.earlyShift+' ｜ 晚班 '+d.config.lateShift+' ｜ 休息上限 '+d.config.restDaysPerMonth+' 天 ｜ 生成时间 '+new Date().toLocaleString('zh-CN')+'</div>'+
+  '<div class="kpi"><div>早班合计 <b>'+d.totals.early+'</b></div><div>晚班合计 <b>'+d.totals.late+'</b></div><div>休息合计 <b>'+d.totals.rest+'</b></div><div>已提交 <b>'+d.submitted+'/'+d.total+'</b></div><div>未提交 <b>'+(d.total-d.submitted)+'</b></div></div>'+
+  '<h2>可视化图表</h2><div class="charts">'+
+  (imgs.pie?'<div><img src="'+imgs.pie+'"></div>':'')+
+  (imgs.emp?'<div><img src="'+imgs.emp+'"></div>':'')+
+  (imgs.day?'<div><img src="'+imgs.day+'"></div>':'')+
+  (imgs.rest?'<div><img src="'+imgs.rest+'"></div>':'')+
+  (imgs.we?'<div><img src="'+imgs.we+'"></div>':'')+
+  (imgs.restDist?'<div><img src="'+imgs.restDist+'"></div>':'')+
+  '</div><h2>明细表</h2><table><thead><tr><th>员工</th><th>早班</th><th>晚班</th><th>休息</th><th>是否超上限</th><th>已提交</th></tr></thead><tbody>'+tr+'</tbody></table>'+
+  '<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt></body></html>');
+  w.document.close();
 }
 
 window.addEventListener('resize',()=>{const adm=document.getElementById('admMain');if(admState.token&&adm&&!adm.classList.contains('hidden'))renderAdmGrid();});
