@@ -90,6 +90,19 @@ function daysInMonth(month) {
 function countRest(schedule) {
   return Object.values(schedule || {}).filter(v => v === 'rest').length;
 }
+function countShift(schedule) {
+  let e = 0, l = 0, r = 0;
+  Object.values(schedule || {}).forEach(v => {
+    if (v === 'early') e++;
+    else if (v === 'late') l++;
+    else if (v === 'rest') r++;
+  });
+  return { e, l, r };
+}
+function firstOffset(month) {
+  const [y, m] = month.split('-').map(Number);
+  return (new Date(y, m - 1, 1).getDay() + 6) % 7; // 周一=0
+}
 function lockInfo(emp) {
   // 员工提交后可随时更改，不再锁定；仅记录最后提交时间供参考
   const last = DATA.lastSubmitted[emp];
@@ -280,6 +293,68 @@ const server = http.createServer((req, res) => {
       }
       saveData(DATA);
       return sendJson(res, 200, { ok: true, removed });
+    });
+  }
+
+  // ---- 管理员：多维度统计（月底汇总分析）----
+  if (p === '/api/admin/stats' && req.method === 'GET') {
+    const token = url.searchParams.get('token') || req.headers['x-admin-token'];
+    if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
+    const month = url.searchParams.get('month');
+    if (!month) return sendJson(res, 400, { error: '缺少月份' });
+    const cfg = DATA.config;
+    const names = cfg.employees.map(e => e.name);
+    const n = daysInMonth(month);
+    const sch = DATA.schedules[month] || {};
+    const off = firstOffset(month);
+
+    const perEmployee = names.map(name => {
+      const s = sch[name] || {};
+      const c = countShift(s);
+      const submitted = Object.keys(s).length > 0;
+      return { name, early: c.e, late: c.l, rest: c.r, submitted, overRest: c.r > cfg.restDaysPerMonth };
+    });
+
+    const perDay = [];
+    for (let d = 1; d <= n; d++) {
+      let e = 0, l = 0, r = 0;
+      names.forEach(name => {
+        const v = (sch[name] || {})[String(d)];
+        if (v === 'early') e++;
+        else if (v === 'late') l++;
+        else if (v === 'rest') r++;
+      });
+      perDay.push({ day: d, weekday: (off + d - 1) % 7, early: e, late: l, rest: r });
+    }
+
+    let totalE = 0, totalL = 0, totalR = 0, wkE = 0, wkL = 0, wkR = 0, weE = 0, weL = 0, weR = 0, submitted = 0;
+    names.forEach(name => {
+      const s = sch[name] || {};
+      const c = countShift(s);
+      totalE += c.e; totalL += c.l; totalR += c.r;
+      if (Object.keys(s).length > 0) submitted++;
+    });
+    perDay.forEach(d => {
+      if (d.weekday === 5 || d.weekday === 6) { weE += d.early; weL += d.late; weR += d.rest; }
+      else { wkE += d.early; wkL += d.late; wkR += d.rest; }
+    });
+
+    // 休息天数分布（按休息天数分组的人数）
+    const restDist = {};
+    perEmployee.forEach(e => { restDist[e.rest] = (restDist[e.rest] || 0) + 1; });
+
+    return sendJson(res, 200, {
+      month,
+      days: n,
+      config: { company: cfg.company, earlyShift: cfg.earlyShift, lateShift: cfg.lateShift, restDaysPerMonth: cfg.restDaysPerMonth },
+      perEmployee,
+      perDay,
+      totals: { early: totalE, late: totalL, rest: totalR },
+      weekday: { early: wkE, late: wkL, rest: wkR },
+      weekend: { early: weE, late: weL, rest: weR },
+      restDist,
+      submitted,
+      total: names.length
     });
   }
 
