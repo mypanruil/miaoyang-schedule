@@ -376,8 +376,9 @@ function updateSubmitUI(){
 }
 function optHtml(d,past,isLeave){
   const v=empState.schedule[d]||'';
-  const opts=[{k:'',t:'未排'},{k:'full',t:'通班'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
   const cls=isLeave?'leave':(v||'none');
+  if(isLeave) return `<div class="leave-mark" style="background:#fef2f2;color:#dc2626;border:1px solid #ef4444;font-weight:600;border-radius:6px;padding:5px 0;text-align:center">请</div>`;
+  const opts=[{k:'',t:'未排'},{k:'full',t:'通班'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
   return `<select class="${cls}" ${past?'disabled':''} onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
