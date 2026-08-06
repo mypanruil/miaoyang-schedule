@@ -411,9 +411,9 @@ async function admLogin(){
 async function admLoad(){
   if(!admState.token)return;
   try{
-    const d=await api('/api/admin/data?token='+admState.token);
-    admState.data=d;
     const m=getYearMonth('adm');admState.month=m;
+    const d=await api('/api/admin/data?token='+admState.token+'&month='+m);
+    admState.data=d;
     if(!d.schedules[m])d.schedules[m]={};
     admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
     admState.leaves=d.leaves||{};
