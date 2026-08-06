@@ -19,7 +19,6 @@ const DEFAULT_CONFIG = {
   lateShift: '10:00-19:00',
   restDaysPerMonth: 5,
   maxModifyPerMonth: 5,
-  adminPassword: 'MiaoYang@2026',
   employees: Array.from({ length: 12 }, (_, i) => ({ name: '员工' + String(i + 1).padStart(2, '0'), pin: '' }))
 };
 
@@ -42,12 +41,17 @@ function loadData() {
 function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
 let DATA = loadData();
-// 安全：把历史弱默认密码 admin123 升级为强密码
-if (DATA.config.adminPassword === 'admin123') {
-  DATA.config.adminPassword = DEFAULT_CONFIG.adminPassword;
-  saveData(DATA);
-  console.log('[安全] 已将历史默认管理员密码 admin123 升级为强密码');
+// 安全：管理员密码不再硬编码默认值。优先级：环境变量 ADMIN_PASSWORD > 已保存密码 > 首次随机生成
+if (process.env.ADMIN_PASSWORD) {
+  DATA.config.adminPassword = process.env.ADMIN_PASSWORD;
 }
+if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = ''; // 历史弱密码清空
+if (!DATA.config.adminPassword) {
+  const rand = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+  DATA.config.adminPassword = rand;
+  console.log('[安全] 未配置管理员密码，已自动生成随机密码: ' + rand + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 指定固定强密码）');
+}
+saveData(DATA);
 const adminTokens = new Set(DATA.adminTokens);
 
 function readBody(req, cb) {
@@ -103,11 +107,7 @@ function firstOffset(month) {
   const [y, m] = month.split('-').map(Number);
   return (new Date(y, m - 1, 1).getDay() + 6) % 7; // 周一=0
 }
-function lockInfo(emp) {
-  // 员工提交后可随时更改，不再锁定；仅记录最后提交时间供参考
-  const last = DATA.lastSubmitted[emp];
-  return { locked: false, lastEdit: last || null };
-}
+// 注意：提交锁定现在由 modifyInfo() 基于 submitCount 判断；最后提交时间直接读 DATA.lastSubmitted
 function modifyInfo(emp, month) {
   const max = DATA.config.maxModifyPerMonth;
   const count = (DATA.submitCount[month] && DATA.submitCount[month][emp]) || 0; // 总提交次数（首次+修改）
@@ -136,7 +136,7 @@ const server = http.createServer((req, res) => {
     const month = url.searchParams.get('month');
     const sch = (DATA.schedules[month] && DATA.schedules[month][emp]) || {};
     const mi = modifyInfo(emp, month);
-    return sendJson(res, 200, { schedule: sch, ...lockInfo(emp), restDays: countRest(sch), maxModify: mi.max, leftModify: mi.left, locked: mi.locked, submitted: mi.count >= 1 });
+    return sendJson(res, 200, { schedule: sch, lastEdit: DATA.lastSubmitted[emp] || null, restDays: countRest(sch), maxModify: mi.max, leftModify: mi.left, locked: mi.locked, submitted: mi.count >= 1 });
   }
 
   // ---- 员工：提交排班 ----
@@ -174,7 +174,7 @@ const server = http.createServer((req, res) => {
       DATA.lastSubmitted[emp] = new Date().toISOString();
       saveData(DATA);
       const after = modifyInfo(emp, month);
-      return sendJson(res, 200, { ok: true, lastEdit: lockInfo(emp).lastEdit, restDays: rest, maxModify: after.max, leftModify: after.left, locked: after.locked });
+      return sendJson(res, 200, { ok: true, lastEdit: DATA.lastSubmitted[emp] || null, restDays: rest, maxModify: after.max, leftModify: after.left, locked: after.locked });
     });
   }
 
@@ -247,12 +247,23 @@ const server = http.createServer((req, res) => {
     });
   }
 
-  // ---- 管理员：解除某员工锁定 ----
+  // ---- 管理员：解除某员工锁定（重置其修改次数）----
   if (p === '/api/admin/unlock' && req.method === 'POST') {
     return readBody(req, (err, b) => {
+      if (err) return sendJson(res, 400, { error: '数据格式错误' });
       const token = (b && b.token) || req.headers['x-admin-token'];
       if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
-      if (b && b.emp) { delete DATA.lastSubmitted[b.emp]; saveData(DATA); }
+      const emp = b && b.emp;
+      if (!emp) return sendJson(res, 400, { error: '缺少员工' });
+      // 锁定由 submitCount 决定，需重置对应月份的提交计数；不指定月份则重置全部月份
+      if (b.month && DATA.submitCount[b.month]) {
+        delete DATA.submitCount[b.month][emp];
+        if (!Object.keys(DATA.submitCount[b.month]).length) delete DATA.submitCount[b.month];
+      } else if (!b.month && DATA.submitCount) {
+        for (const m of Object.keys(DATA.submitCount)) delete DATA.submitCount[m][emp];
+      }
+      delete DATA.lastSubmitted[emp];
+      saveData(DATA);
       return sendJson(res, 200, { ok: true });
     });
   }
@@ -402,5 +413,5 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': 
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('排班系统已启动: http://localhost:' + PORT);
-  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD || DATA.config.adminPassword) + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 中修改）');
+  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD ? '(环境变量 ADMIN_PASSWORD)' : DATA.config.adminPassword) + ' （建议通过环境变量 ADMIN_PASSWORD 指定固定强密码）');
 });
