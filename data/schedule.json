@@ -1,0 +1,112 @@
+{
+  "config": {
+    "configVersion": 2,
+    "company": "徐州妙漾医疗美容有限公司",
+    "earlyShift": "09:00-17:00",
+    "lateShift": "10:00-19:00",
+    "fullShift": "09:00-19:00",
+    "restDaysPerMonth": 5,
+    "employees": [
+      {
+        "name": "员工01",
+        "realName": "凌路",
+        "pin": "001"
+      },
+      {
+        "name": "员工02",
+        "realName": "张婉茹",
+        "pin": "002"
+      },
+      {
+        "name": "员工03",
+        "realName": "周子涵",
+        "pin": "003"
+      },
+      {
+        "name": "员工04",
+        "realName": "于晓琼",
+        "pin": "004"
+      },
+      {
+        "name": "员工05",
+        "realName": "周芷茉",
+        "pin": "005"
+      },
+      {
+        "name": "员工06",
+        "realName": "张昊",
+        "pin": "006"
+      },
+      {
+        "name": "员工07",
+        "realName": "董婉霄",
+        "pin": "007"
+      },
+      {
+        "name": "员工08",
+        "realName": "杨景萍",
+        "pin": "008"
+      },
+      {
+        "name": "员工09",
+        "realName": "孙鑫鑫",
+        "pin": "009"
+      },
+      {
+        "name": "员工10",
+        "pin": ""
+      },
+      {
+        "name": "员工11",
+        "pin": ""
+      },
+      {
+        "name": "员工12",
+        "pin": ""
+      }
+    ],
+    "adminPassword": "miaoyang2026"
+  },
+  "schedules": {
+    "2026-08": {
+      "员工05": {
+        "7": "full",
+        "8": "full",
+        "9": "full"
+      },
+      "员工10": {},
+      "员工03": {
+        "7": "full",
+        "8": "full",
+        "9": "full"
+      },
+      "员工07": {
+        "13": "full",
+        "14": "full"
+      }
+    },
+    "2026-12": {}
+  },
+  "lastSubmitted": {
+    "员工01": "2026-08-06T20:21:02.842Z",
+    "员工02": "2026-08-06T19:05:14.232Z",
+    "员工05": "2026-08-06T19:16:40.097Z",
+    "员工04": "2026-08-06T19:17:39.813Z",
+    "员工10": "2026-08-06T20:21:02.848Z",
+    "员工03": "2026-08-06T20:05:36.478Z",
+    "员工07": "2026-08-06T20:06:38.149Z",
+    "员工12": "2026-08-06T20:47:53.633Z"
+  },
+  "adminTokens": [
+    "dcbcdf1ce61ac2ca3c6635d5d905544100053b81c724c413",
+    "5ce4cbfeef767bd0e3adeb52a0c8909e1ca152b66de8743c",
+    "75c6348ad8406ad3d8a44960bb2608bb4ffff69ede3746d8",
+    "1ed08e7941f2adf770c555cee93b6bfbdd69bdfb83316f1b",
+    "7c218c5801b45c0975dcd5dfb8c16eb08fc134c9eecf8d66",
+    "decdbeed2cb40a634c32d26b25734ce1ffa0a3215072811f",
+    "0585351391dd0e5ea4ed2a245dfd2945d1f23184c09e8c6c",
+    "94e3c5fcfd113f66c48c14c3047f6e5b61bd03613c8f82c3",
+    "62b20a4b629d1efeb3fd542f23ff952cad9f5d8fcdf7facc"
+  ],
+  "leaves": {}
+}
