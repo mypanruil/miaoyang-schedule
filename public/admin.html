@@ -184,7 +184,6 @@
     .stats-grid{grid-template-columns:1fr}
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
 <div class="topbar">
@@ -354,6 +353,8 @@
 <script>
 const API='';
 let CONFIG=null;
+// 动态加载 Chart.js（仅在统计分析需要时，不阻塞登录）
+function loadChartJS(){return new Promise(function(resolve,reject){if(typeof Chart!=='undefined')return resolve();var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
 const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Date()),data:{schedules:{}},draft:{}};
 
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -584,7 +585,7 @@ async function renderStats(){
     statsData=d;
     const meta=document.getElementById('statsMeta'); if(meta)meta.textContent=monthLabel(m)+' ｜ 已提交 '+d.submitted+' / '+d.total;
     renderStatsKpi(d);
-    renderStatsCharts(d);
+    await renderStatsCharts(d);
     renderStatsTable(d);
     showMsg('statsMsg','已生成 '+monthLabel(m)+' 多维度统计','ok');
   }catch(e){showMsg('statsMsg',e,'err');}
@@ -600,8 +601,8 @@ function renderStatsKpi(d){
     '<div class="kpi miss"><b>'+(d.total-d.submitted)+'</b><span>未提交</span></div>';
 }
 function destroyCharts(){Object.keys(chartMap).forEach(k=>{if(chartMap[k]){chartMap[k].destroy();delete chartMap[k];}});}
-function renderStatsCharts(d){
-  if(typeof Chart==='undefined'){showMsg('statsMsg','图表库加载失败（可能离线），仍可导出 CSV / PDF 文本','err');return;}
+async function renderStatsCharts(d){
+  try{await loadChartJS();}catch(e){showMsg('statsMsg','图表库加载失败（可能离线），仍可导出 CSV / PDF 文本','err');return;}
   destroyCharts();
   const C={early:'#2563eb',late:'#d97706',full:'#7c3aed',rest:'#9ca3af'};
   chartMap.pie=new Chart(document.getElementById('chartPie'),{type:'doughnut',data:{labels:['早班','晚班','通班','休息'],datasets:[{data:[d.totals.early,d.totals.late,d.totals.full,d.totals.rest],backgroundColor:[C.early,C.late,C.full,C.rest]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
@@ -633,9 +634,9 @@ function exportStatsCSV(){
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='排班统计_'+d.month+'.csv';document.body.appendChild(a);a.click();a.remove();
 }
-function exportStatsPNG(){
+async function exportStatsPNG(){
   if(!statsData){showMsg('statsMsg','请先生成统计','err');return;}
-  if(typeof Chart==='undefined'){showMsg('statsMsg','图表库未加载，无法导出图片','err');return;}
+  try{await loadChartJS();}catch(e){showMsg('statsMsg','图表库未加载，无法导出图片','err');return;}
   const map={pie:'班次占比',emp:'员工对比',day:'每日分布',rest:'休息天数',we:'工作日周末',restDist:'休息分布'};
   let i=0;
   Object.keys(map).forEach(k=>{
