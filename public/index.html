@@ -3,315 +3,411 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>徐州妙漾医疗美容 · 员工排班表</title>
+<title>徐州妙漾医疗美容 · 员工排班系统</title>
 <style>
   :root{
-    --bg:#0f1419;--panel:#1a212b;--panel2:#222c38;--line:#2c3744;--txt:#e6edf3;--mut:#8b98a5;
-    --accent:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--rest:#ef4444;--early:#3b82f6;--late:#f59e0b;
+    --primary:#2563eb;--primary-dark:#1d4ed8;
+    --bg:#f0f2f5;--panel:#ffffff;--line:#e5e7eb;--txt:#1f2937;--mut:#6b7280;
+    --ok:#16a34a;--warn:#d97706;--err:#dc2626;
+    --early:#2563eb;--late:#d97706;--rest:#9ca3af;
+    --earlybg:#eff6ff;--latebg:#fff7ed;--restbg:#f3f4f6;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
-  .wrap{max-width:1100px;margin:0 auto;padding:12px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-  h1{font-size:18px;margin:0}
-  .tabs{display:flex;gap:6px}
-  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--mut);cursor:pointer;font-size:14px}
-  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-  label{font-size:13px;color:var(--mut);display:block;margin:8px 0 4px}
-  select,input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:15px}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row>*{flex:1;min-width:120px}
-  button{padding:10px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
-  button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
-  button.ok{background:var(--ok)} button.warn{background:var(--warn)} button.err{background:var(--err)}
-  .msg{font-size:13px;margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
-  .msg.info{background:#1e2a3a;color:#9cc4ff;display:block}
-  .msg.err{background:#3a1e1e;color:#ffb4b4;display:block}
-  .msg.ok{background:#16331f;color:#9ff0b6;display:block}
-  /* calendar */
-  .cal{overflow-x:auto;margin-top:10px}
-  table{border-collapse:collapse;width:100%;min-width:560px}
-  th,td{border:1px solid var(--line);padding:6px 2px;text-align:center;font-size:13px}
-  th.emp,td.emp{position:sticky;left:0;background:var(--panel2);text-align:left;padding-left:8px;min-width:96px;z-index:2}
-  .day .d{font-size:11px;color:var(--mut)}
-  .cell{cursor:pointer;border-radius:6px;padding:4px 0;user-select:none}
-  .cell.early{background:rgba(59,130,246,.22);color:#bcd8ff}
-  .cell.late{background:rgba(245,158,11,.22);color:#ffd99a}
-  .cell.rest{background:rgba(239,68,68,.22);color:#ffb4b4}
-  .rest-count{font-size:14px;margin-top:8px}
-  .rest-count b{color:var(--ok)}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  .topbar{background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;padding:14px 0;box-shadow:0 2px 6px rgba(37,99,235,.25)}
+  .topbar-inner{max-width:1100px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand-title{font-size:20px;font-weight:700;letter-spacing:.3px}
+  .brand-sub{font-size:12px;opacity:.85;margin-top:2px}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  .card{background:var(--panel);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:18px}
+  .card-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-title .meta{font-size:13px;color:var(--mut);font-weight:400}
+
+  label{font-size:13px;color:var(--mut);display:block;margin-bottom:5px}
+  select,input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:14px;outline:none;margin:0}
+  select{-webkit-appearance:none;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 10px center;background-size:14px}
+  select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+  button{padding:10px 18px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+  button:hover{background:var(--primary-dark)}
+  button:disabled{background:#cbd5e1;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
+  button.ghost:hover{background:#f9fafb}
+  button.ok{background:var(--ok)} button.ok:hover{background:#15803d}
+
+  .row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+  .row .field{flex:0 0 240px;min-width:0}
+  .row .field.sm{flex:0 0 220px;min-width:0}
+  .row .actions{flex:1 1 100%;display:flex;gap:10px;justify-content:flex-start;margin-top:8px}
+
+  .month-picker{display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
+  .month-picker select{flex:0 0 auto;width:auto;min-width:0;padding:10px 28px 10px 12px;font-size:14px}
+
+  .status-bar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;flex-wrap:wrap;gap:10px}
+  .rest-count{font-size:15px;color:var(--txt)}
+  .rest-count b{color:var(--primary);font-size:18px}
   .rest-count.bad b{color:var(--err)}
-  .legend{font-size:12px;color:var(--mut);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
-  .lock{background:#3a2a10;color:#ffd99a;padding:10px;border-radius:8px;margin-top:8px;font-size:13px}
-  .pill{font-size:11px;color:var(--mut)}
-  footer{font-size:12px;color:var(--mut);text-align:center;margin:16px 0}
-  a{color:var(--accent)}
-  .muted{color:var(--mut);font-size:13px}
-  /* admin grid */
-  .agrid{overflow-x:auto;margin-top:10px}
-  .settings label{font-size:12px}
-  .emp-row{display:flex;gap:6px;margin:4px 0}
-  .emp-row input{flex:1}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
-  .overlay .card{max-width:520px;width:100%;max-height:90vh;overflow:auto}
+  .hint{font-size:12px;color:var(--mut)}
+
+  .legend{font-size:13px;color:var(--mut);display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  .cal{margin-top:6px;overflow-x:auto}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;min-width:580px}
+  .wd{text-align:center;font-size:13px;color:var(--mut);padding:6px 0;font-weight:600}
+  .day-cell{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff;min-height:78px;display:flex;flex-direction:column;gap:6px}
+  .day-cell.empty{background:transparent;border:none}
+  .day-cell .day-num{font-size:14px;font-weight:700;color:var(--txt)}
+  .day-cell select{font-size:13px;padding:6px 8px;border-radius:6px}
+  .day-cell.past{opacity:.5;background:#f3f4f6}
+  .day-cell.past .day-num{color:#9ca3af}
+
+  .submit-area{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .submit-area button{padding:12px 32px;font-size:15px}
+  .submit-tip{font-size:12px;color:var(--mut);margin-top:8px}
+
+  .msg{font-size:13px;margin-top:12px;padding:10px 12px;border-radius:8px;display:none}
+  .msg.info{background:#eff6ff;color:#1d4ed8;display:block}
+  .msg.err{background:#fee2e2;color:#b91c1c;display:block}
+  .msg.ok{background:#dcfce7;color:#166534;display:block}
+
   .hidden{display:none}
+  footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
+
+  /* ---------- 全员排班总览 ---------- */
+  .all-table{border-collapse:collapse;width:100%;font-size:12px;min-width:620px;margin-top:4px}
+  .all-table th,.all-table td{border:1px solid var(--line);padding:4px 2px;text-align:center;min-width:20px}
+  .all-table thead th{background:#f0f2f5;font-weight:600;line-height:1.2}
+  .all-table th.sticky,.all-table td.sticky{position:sticky;left:0;background:#fff;z-index:2;font-weight:600;text-align:left;padding-left:8px;min-width:64px}
+  .all-table thead th.sticky{background:#f0f2f5}
+  .all-table td.early{background:var(--earlybg);color:var(--early);font-weight:600}
+  .all-table td.late{background:var(--latebg);color:var(--late);font-weight:600}
+  .all-table td.rest{background:var(--restbg);color:var(--rest);font-weight:600}
+  .all-table .wd-h{font-size:10px;color:var(--mut);font-weight:400}
+  .all-table tbody tr:nth-child(even) td.sticky{background:#fafafa}
+  .all-table tbody tr:nth-child(even){background:#fafafa}
+
+  /* ---------- 移动端优化 ---------- */
+  @media (max-width:640px){
+    body{font-size:15px}
+    .topbar{padding:10px 0}
+    .topbar-inner{padding:0 12px;gap:8px}
+    .brand-title{font-size:16px}
+    .brand-sub{font-size:11px}
+    .wrap{padding:10px}
+    .card{padding:12px;border-radius:10px;margin-bottom:12px}
+    .card-title{font-size:16px;margin-bottom:10px;gap:6px}
+    .card-title .meta{font-size:12px;width:100%}
+    .row{flex-direction:column;align-items:stretch;gap:4px}
+    .row .field{flex:0 0 auto;min-width:0;width:100%}
+    .row .field.sm{flex:0 0 auto;width:100%}
+    .month-picker{display:flex;gap:6px;width:100%;flex-wrap:nowrap}
+    .month-picker select{flex:1 1 50%;min-width:0;padding:8px 22px 8px 8px;font-size:14px;background-position:right 6px center}
+    .actions{display:flex;width:100%;gap:8px}
+    .actions button{flex:1;padding:12px 6px;font-size:14px}
+    .status-bar{margin:10px 0 6px;gap:6px}
+    .rest-count{font-size:14px}
+    .rest-count b{font-size:17px}
+    .hint{font-size:11px}
+    .legend{gap:12px;font-size:12px;margin-bottom:10px}
+    .dot{width:10px;height:10px}
+    .cal{margin:0 -4px;padding:0 4px;overflow-x:visible}
+    .calgrid{grid-template-columns:repeat(7,1fr);gap:4px;min-width:0}
+    .wd{font-size:11px;padding:4px 0}
+    .day-cell{min-height:0;padding:5px 3px 7px;border-radius:8px;gap:3px;align-items:center;justify-content:center}
+    .day-cell .day-num{font-size:13px;font-weight:700}
+    .day-cell select{font-size:12px;padding:5px 2px;height:auto;min-height:32px;border-radius:5px;text-align:center;direction:ltr;width:100%;min-width:0;-webkit-appearance:none;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 3px center;background-size:12px}
+    .day-cell.empty{visibility:hidden;border:none;background:transparent}
+    .submit-area{margin-top:12px;padding-top:10px}
+    .submit-area button{width:100%;padding:14px;font-size:16px}
+    .submit-tip{font-size:12px}
+    .msg{font-size:13px;padding:8px 10px;margin-top:8px}
+    label{font-size:12px;margin-bottom:3px}
+    select,input{font-size:14px;padding:8px 10px}
+    button{padding:10px 14px;font-size:14px}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1 id="companyTitle">员工排班表</h1>
-    <div class="tabs">
-      <div class="tab active" id="tabEmp" onclick="switchTab('emp')">员工填写</div>
-      <div class="tab" id="tabAdm" onclick="switchTab('adm')">管理员</div>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <div class="brand-title">徐州妙漾医疗美容 · 员工排班系统</div>
+      <div class="brand-sub" id="brandSub">徐州妙漾医疗美容有限公司</div>
     </div>
-  </header>
+  </div>
+</div>
 
+<div class="wrap">
   <!-- 员工端 -->
   <section id="secEmp">
     <div class="card">
-      <div class="row">
-        <div><label>选择员工</label><select id="empSel"></select></div>
-        <div id="pinBox" class="hidden"><label>PIN 码</label><input id="empPin" type="password" placeholder="请输入 PIN"></div>
-        <div><label>月份</label><select id="empMonth"></select></div>
+      <div class="card-title">
+        员工自助排班
+        <span class="meta" id="empMeta">早班 09:00-17:00 &nbsp; 晚班 10:00-19:00 &nbsp; 每月休息 5 天</span>
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="empLoad()">加载我的排班</button>
-        <button class="ghost" onclick="empClear()">清空</button>
+      <div class="row">
+        <div class="field">
+          <label>选择姓名</label>
+          <select id="empSel"></select>
+        </div>
+        <div class="field" id="pinBox">
+          <label>验证 PIN（如已设置）</label>
+          <input id="empPin" type="password" placeholder="未设置可留空">
+        </div>
+        <div class="field sm">
+          <label>排班月份</label>
+          <div class="month-picker">
+            <select id="empYear" onchange="onEmpMonthChange()"></select>
+            <select id="empMonth" onchange="onEmpMonthChange()"></select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnEmpLoad" onclick="empLoad()">加载我的排班</button>
+          <button class="ghost" onclick="empClear()">清空重填</button>
+        </div>
       </div>
       <div id="empMsg" class="msg"></div>
-      <div id="empLock" class="lock hidden"></div>
-      <div class="cal" id="empCal"></div>
-      <div class="rest-count" id="empRest"></div>
+
+      <div class="status-bar">
+        <div class="rest-count" id="empRest">已选休息 <b>0</b> / 5 天</div>
+        <div class="hint" id="empHint">提交后可随时修改，重新提交即覆盖</div>
+      </div>
       <div class="legend">
         <span><span class="dot" style="background:var(--early)"></span>早班 <span id="lgEarly"></span></span>
         <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
         <span><span class="dot" style="background:var(--rest)"></span>休息</span>
       </div>
-      <div style="margin-top:12px"><button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button></div>
-      <p class="muted">提示：点击日期单元格在 早/晚/休 之间切换；休息须正好 <b id="needRest">5</b> 天。提交后本周（7天）内不可再改。</p>
+
+      <div class="cal" id="empCal"></div>
+
+      <div class="submit-area">
+        <button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button>
+        <div class="submit-tip" id="empSubmitTip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时重新提交覆盖。</div>
+      </div>
     </div>
   </section>
 
-  <!-- 管理员端 -->
-  <section id="secAdm" class="hidden">
-    <div id="admGate" class="card">
-      <h3 style="margin-top:0">管理员验证</h3>
-      <label>管理员密码</label><input id="admPwd" type="password" placeholder="默认 admin123">
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <button onclick="admLogin()">进入</button>
-        <span class="muted" style="align-self:center">默认密码 admin123，登录后可在设置中修改</span>
+  <!-- 全员排班总览 -->
+  <section id="secAll">
+    <div class="card">
+      <div class="card-title">
+        本月全员排班总览
+        <span class="meta" id="allMeta">管理员汇总后此处实时更新</span>
       </div>
-      <div id="admGateMsg" class="msg"></div>
-    </div>
-
-    <div id="admMain" class="hidden">
-      <div class="card">
-        <div class="row">
-          <div><label>查看月份</label><select id="admMonth" onchange="admLoad()"></select></div>
-          <div style="align-self:flex-end;display:flex;gap:8px">
-            <button class="ghost" onclick="admLoad()">刷新</button>
-            <button class="ghost" onclick="openSettings()">基础设置</button>
+      <div class="row">
+        <div class="field sm">
+          <label>查看月份</label>
+          <div class="month-picker">
+            <select id="allYear" onchange="loadAll()"></select>
+            <select id="allMonth" onchange="loadAll()"></select>
           </div>
         </div>
-        <div id="admMsg" class="msg"></div>
-        <div class="agrid" id="admGrid"></div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="ok" onclick="admSaveAll()">保存排班</button>
-          <button onclick="admExport()">导出 PDF</button>
-        </div>
-        <p class="muted">管理员可在此直接修改任意员工排班并保存；点「导出 PDF」在打印窗口选「另存为 PDF」即可。</p>
+        <div class="actions"><button class="ghost" onclick="loadAll()">刷新</button></div>
       </div>
+      <div id="allMsg" class="msg"></div>
+      <div class="cal" id="allCal"></div>
     </div>
   </section>
 
   <footer id="footNote"></footer>
 </div>
 
-<!-- 设置弹窗 -->
-<div id="setOverlay" class="overlay hidden" onclick="if(event.target===this)closeSettings()">
-  <div class="card settings">
-    <h3 style="margin-top:0">基础设置</h3>
-    <label>公司名称</label><input id="setCompany">
-    <div class="row">
-      <div><label>早班时间</label><input id="setEarly"></div>
-      <div><label>晚班时间</label><input id="setLate"></div>
-    </div>
-    <div class="row">
-      <div><label>每月休息天数</label><input id="setRest" type="number"></div>
-    </div>
-    <label>管理员密码(留空不修改)</label><input id="setPwd" type="password" placeholder="新密码">
-    <label>员工名单（姓名 / PIN，PIN 可空）</label>
-    <div id="setEmps"></div>
-    <div style="margin-top:8px;display:flex;gap:8px">
-      <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
-      <button class="ok" onclick="saveSettings()">保存设置</button>
-      <button class="ghost" onclick="closeSettings()">关闭</button>
-    </div>
-    <div id="setMsg" class="msg"></div>
-  </div>
-</div>
-
 <script>
-const API = '';
-let CONFIG = null;
-const empState = { month: curMonth(new Date()), schedule: {} };
-const admState = { token: localStorage.getItem('admToken') || '', month: curMonth(new Date()), data: { schedules: {} }, draft: {} };
+const API='';
+let CONFIG=null;
+let empLock={locked:false,left:5,submitted:false,max:5,expired:false};
+const empState={month:curMonth(new Date()),schedule:{}};
 
-function curMonth(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-function monthLabel(m){ const [y,mm]=m.split('-'); return y+'年'+Number(mm)+'月'; }
-function daysIn(m){ const [y,mm]=m.split('-').map(Number); return new Date(y,mm,0).getDate(); }
-function pad(n){ return String(n).padStart(2,'0'); }
+function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
+function daysIn(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
+function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;}
 
-async function api(path, opts){ opts=opts||{}; const r=await fetch(API+path, Object.assign({headers:{'Content-Type':'application/json'}},opts)); let j=null; try{j=await r.json();}catch(e){} if(!r.ok) throw (j&&j.error)||('错误'+r.status); return j; }
-function showMsg(id,text,kind){ const el=document.getElementById(id); el.className='msg '+(kind||'info'); el.textContent=text; }
+async function api(path,opts){opts=opts||{};const r=await fetch(API+path,Object.assign({headers:{'Content-Type':'application/json'}},opts));let j=null;try{j=await r.json();}catch(e){}if(!r.ok)throw (j&&j.error)||('错误'+r.status);return j;}
+function showMsg(id,text,kind){const el=document.getElementById(id);el.className='msg '+(kind||'info');el.textContent=text;}
 
 async function loadConfig(){
-  CONFIG = await api('/api/config');
-  document.getElementById('companyTitle').textContent = CONFIG.company+' · 排班表';
-  document.getElementById('lgEarly').textContent = CONFIG.earlyShift;
-  document.getElementById('lgLate').textContent = CONFIG.lateShift;
-  document.getElementById('needRest').textContent = CONFIG.restDaysPerMonth;
-  document.getElementById('footNote').textContent = CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
-  // 员工下拉
-  const sel=document.getElementById('empSel'); sel.innerHTML='';
-  CONFIG.employees.forEach(e=>{ const o=document.createElement('option'); o.value=e.name; o.textContent=e.name; sel.appendChild(o); });
-  sel.onchange=()=>{ document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin); };
-  document.getElementById('pinBox').classList.toggle('hidden', !CONFIG.employees.find(e=>e.name===sel.value).hasPin);
-  // 月份下拉
-  fillMonths(document.getElementById('empMonth'), empState.month);
-  fillMonths(document.getElementById('admMonth'), admState.month);
-  if(admState.token) try{ const d=await api('/api/admin/data?token='+admState.token); if(d.config){ showAdm(); } }catch(e){ localStorage.removeItem('admToken'); admState.token=''; }
-}
+  CONFIG=await api('/api/config');
+  if(!CONFIG)throw new Error('配置加载失败');
+  document.getElementById('brandSub').textContent=CONFIG.company;
+  document.getElementById('empMeta').innerHTML='早班 '+CONFIG.earlyShift+' &nbsp; 晚班 '+CONFIG.lateShift+' &nbsp; 每月休息 '+CONFIG.restDaysPerMonth+' 天';
+  document.getElementById('lgEarly').textContent=CONFIG.earlyShift;
+  document.getElementById('lgLate').textContent=CONFIG.lateShift;
+  document.getElementById('needRest').textContent=CONFIG.restDaysPerMonth;
+  document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
 
-function fillMonths(sel, cur){
-  sel.innerHTML='';
-  const now=new Date();
-  for(let i=-1;i<=3;i++){ const d=new Date(now.getFullYear(), now.getMonth()+i, 1); const m=curMonth(d); const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); if(m===cur)o.selected=true; sel.appendChild(o); }
+  const sel=document.getElementById('empSel');sel.innerHTML='';
+  CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
+  sel.onchange=updatePinBox; updatePinBox();
+  fillYearMonth('emp',empState.month);
+  fillYearMonth('all', curMonth(new Date()));
+  document.getElementById('empSubmit').disabled=false;
+  loadAll();
 }
-
-function switchTab(t){
-  document.getElementById('tabEmp').classList.toggle('active', t==='emp');
-  document.getElementById('tabAdm').classList.toggle('active', t==='adm');
-  document.getElementById('secEmp').classList.toggle('hidden', t!=='emp');
-  document.getElementById('secAdm').classList.toggle('hidden', t!=='adm');
+function updatePinBox(){
+  const sel=document.getElementById('empSel');
+  const e=CONFIG.employees.find(x=>x.name===sel.value);
+  document.getElementById('pinBox').classList.toggle('hidden',!e||!e.hasPin);
+}
+function fillYearMonth(prefix,cur){
+  const [cy,cm]=cur.split('-').map(Number);
+  const sy=document.getElementById(prefix+'Year');
+  const sm=document.getElementById(prefix+'Month');
+  const base=new Date().getFullYear();
+  sy.innerHTML='';sm.innerHTML='';
+  for(let y=base-5;y<=base+25;y++){const o=document.createElement('option');o.value=String(y);o.textContent=y+'年';if(y===cy)o.selected=true;sy.appendChild(o);}
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=String(m).padStart(2,'0');o.textContent=m+'月';if(m===cm)o.selected=true;sm.appendChild(o);}
+}
+function getYearMonth(prefix){
+  const y=document.getElementById(prefix+'Year').value;
+  const m=document.getElementById(prefix+'Month').value;
+  return y+'-'+m;
 }
 
 /* ---------- 员工端 ---------- */
-function empClear(){ empState.schedule={}; renderEmpCal(); }
-async function empLoad(){
+function onEmpMonthChange(){empState.month=getYearMonth('emp');}
+async function empClear(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   const emp=document.getElementById('empSel').value;
-  const month=document.getElementById('empMonth').value; empState.month=month;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
-    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+month);
-    empState.schedule=r.schedule||{};
-    if(r.lastEdit){ const lock=document.getElementById('empLock'); lock.classList.remove('hidden'); lock.textContent='上次提交时间：'+new Date(r.lastEdit).toLocaleString('zh-CN')+'（可随时修改）'; }
+    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
+    const sch=r.schedule||{};
+    const now=new Date();
+    const [yy,mm]=empState.month.split('-').map(Number);
+    const isPastDate=(dd)=> (yy<now.getFullYear()) || (yy===now.getFullYear()&&mm<now.getMonth()+1) || (yy===now.getFullYear()&&mm===now.getMonth()+1&&dd<now.getDate());
+    const cleaned={};
+    for(const k of Object.keys(sch)){
+      const dd=Number(k);
+      if(isPastDate(dd)) cleaned[k]=sch[k]; // 已过期 / 过去的日期保留，不能清空
+    }
+    empState.schedule=cleaned;
     renderEmpCal();
-    showMsg('empMsg','已加载'+emp+' 的排班','ok');
-  }catch(e){ showMsg('empMsg',e,'err'); }
+    showMsg('empMsg','已清空未来的排班，过去的已提交排班已保留不可更改','info');
+  }catch(e){showMsg('empMsg',e,'err');}
 }
-function cycle(v){ return v==='early'?'late':v==='late'?'rest':'early'; }
+async function empLoad(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
+  empState.month=getYearMonth('emp');
+  const emp=document.getElementById('empSel').value;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
+  try{
+    const r=await api('/api/schedule?emp='+encodeURIComponent(emp)+'&month='+empState.month);
+    empState.schedule=r.schedule||{};
+    const now=new Date(); const cy=now.getFullYear(),cm=now.getMonth()+1;
+    const [ey,em]=empState.month.split('-').map(Number);
+    const expired = ey<cy || (ey===cy && em<cm);
+    empLock={locked:!!r.locked||expired, left:r.leftModify, submitted:!!r.submitted, max:r.maxModify||5, expired:expired};
+    renderEmpCal();
+    updateSubmitUI();
+    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班'+(expired?'（该月已过期，仅可查看）':''),'ok');
+  }catch(e){showMsg('empMsg',e,'err');}
+}
+function updateSubmitUI(){
+  const btn=document.getElementById('empSubmit');
+  const tip=document.getElementById('empSubmitTip');
+  if(empLock.locked){
+    btn.disabled=true;
+    btn.textContent='已锁定';
+    tip.innerHTML=empLock.expired?('该月已过期，不能修改排班。'):('本月修改次数已用完，排班已锁定（共 '+empLock.max+' 次）。');
+  }else if(empLock.submitted){
+    btn.disabled=false;
+    btn.textContent='修改并提交';
+    tip.innerHTML='本月还可修改 <b>'+empLock.left+'</b> 次。';
+  }else{
+    btn.disabled=false;
+    btn.textContent='提交排班';
+    tip.innerHTML='首次提交后，本月可修改 <b>'+empLock.max+'</b> 次。';
+  }
+}
+function optHtml(d,past){
+  const v=empState.schedule[d]||'';
+  const opts=[{k:'',t:'未排'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
+  return `<select ${past?'disabled':''} onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
+}
 function renderEmpCal(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候再试','err');return;}
   const n=daysIn(empState.month);
-  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
-  h+='</tr></thead><tbody><tr><td class="emp">'+document.getElementById('empSel').value+'</td>';
-  for(let d=1;d<=n;d++){ const v=empState.schedule[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="empSet(${d})"><div class="${cls}">${t}</div></td>`; }
-  h+='</tr></tbody></table>';
+  const off=firstOffset(empState.month);
+  const wd=['一','二','三','四','五','六','日'];
+  const now=new Date();
+  const curM=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const isCurMonth=empState.month===curM;
+  const today=now.getDate();
+  let h='<div class="calgrid">';
+  wd.forEach(w=>h+=`<div class="wd">${w}</div>`);
+  for(let i=0;i<off;i++)h+='<div class="day-cell empty"></div>';
+  for(let d=1;d<=n;d++){
+    const past=isCurMonth && d<today;
+    h+=`<div class="day-cell${past?' past':''}"><div class="day-num">${d}</div>${optHtml(d,past)}</div>`;
+  }
+  const tail=(7-(off+n)%7)%7;
+  for(let i=0;i<tail;i++)h+='<div class="day-cell empty"></div>';
+  h+='</div>';
   document.getElementById('empCal').innerHTML=h;
   const rest=Object.values(empState.schedule).filter(v=>v==='rest').length;
   const need=CONFIG.restDaysPerMonth;
-  const rc=document.getElementById('empRest'); rc.className='rest-count'+(rest!==need?' bad':'');
-  rc.innerHTML='休息天数：<b>'+rest+'</b> / 需 '+need+' 天';
-  document.getElementById('empSubmit').disabled = rest!==need;
+  const rc=document.getElementById('empRest');
+  rc.className='rest-count'+(rest>need?' bad':'');
+  rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest>need?('（超出 '+(rest-need)+' 天，请减少）'):'');
+  document.getElementById('empSubmit').disabled=(rest>need)||empLock.locked;
 }
-function empSet(d){ empState.schedule[d]=cycle(empState.schedule[d]||''); renderEmpCal(); }
+function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
+  if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   const emp=document.getElementById('empSel').value;
-  const month=empState.month;
   const pin=document.getElementById('empPin').value||'';
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
-    const r=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month,schedule:empState.schedule})});
-    showMsg('empMsg','提交成功！可随时修改，重新提交即覆盖','ok');
-    const lock=document.getElementById('empLock'); lock.classList.remove('hidden');
-    lock.textContent='上次提交时间：'+new Date().toLocaleString('zh-CN')+'（可随时修改）';
-  }catch(e){ showMsg('empMsg',e,'err'); }
+    const res=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
+    empLock={locked:!!res.locked, left:res.leftModify, submitted:true, max:res.maxModify||5, expired:empLock.expired};
+    updateSubmitUI();
+    showMsg('empMsg',(empLock.locked?'提交成功！本月修改次数已用完，排班已锁定':'提交成功！可随时修改，重新提交即覆盖'),'ok');
+    loadAll();
+  }catch(e){showMsg('empMsg',e,'err');}
 }
 
-/* ---------- 管理员端 ---------- */
-function showAdm(){ document.getElementById('admGate').classList.add('hidden'); document.getElementById('admMain').classList.remove('hidden'); admLoad(); }
-async function admLogin(){
-  try{ const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:document.getElementById('admPwd').value})}); admState.token=r.token; localStorage.setItem('admToken',r.token); showAdm(); }
-  catch(e){ showMsg('admGateMsg',e,'err'); }
-}
-async function admLoad(){
-  if(!admState.token) return;
+/* ---------- 全员排班总览 ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function getAllMonth(){return document.getElementById('allYear').value+'-'+document.getElementById('allMonth').value;}
+async function loadAll(){
+  if(!CONFIG){return;}
+  const month=getAllMonth();
   try{
-    const d=await api('/api/admin/data?token='+admState.token);
-    admState.data=d;
-    const m=document.getElementById('admMonth').value; admState.month=m;
-    if(!d.schedules[m]) d.schedules[m]={};
-    admState.draft=JSON.parse(JSON.stringify(d.schedules[m]));
-    renderAdmGrid();
-    showMsg('admMsg','已加载 '+monthLabel(m)+'（共 '+Object.keys(d.schedules[m]).length+' 人已提交）','ok');
-  }catch(e){ showMsg('admMsg',e,'err'); }
+    const s=await api('/api/summary?month='+month);
+    document.getElementById('allMeta').textContent=monthLabel(month)+' ｜ 共 '+s.employees.length+' 人';
+    renderAllTable(s);
+  }catch(e){showMsg('allMsg',e,'err');}
 }
-function renderAdmGrid(){
-  const names=CONFIG.employees.map(e=>e.name);
-  const n=daysIn(admState.month);
-  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++) h+=`<th class="day"><div class="d">${d}</div></th>`;
+function renderAllTable(s){
+  if(!s.employees||!s.employees.length){document.getElementById('allCal').innerHTML='<div class="hint">暂无排班数据</div>';return;}
+  const n=s.days;
+  const wd=['一','二','三','四','五','六','日'];
+  let h='<div style="overflow-x:auto"><table class="all-table"><thead><tr><th class="sticky">员工</th>';
+  for(let d=1;d<=n;d++){
+    const dt=new Date(s.month.split('-')[0],s.month.split('-')[1]-1,d);
+    const w=wd[(dt.getDay()+6)%7];
+    h+='<th>'+d+'<br><span class="wd-h">'+w+'</span></th>';
+  }
   h+='</tr></thead><tbody>';
-  names.forEach(name=>{
-    const s=admState.draft[name]||{};
-    const rest=Object.values(s).filter(v=>v==='rest').length;
-    const bad=rest!==CONFIG.restDaysPerMonth;
-    h+=`<tr><td class="emp" style="${bad?'color:#ef4444':''}">${name}${bad?' ('+rest+')':''}</td>`;
-    for(let d=1;d<=n;d++){ const v=s[d]||''; const cls=v?'cell '+v:''; const t=v==='early'?'早':v==='late'?'晚':v==='rest'?'休':''; h+=`<td onclick="admSet('${name}',${d})"><div class="${cls}">${t}</div></td>`; }
+  s.employees.forEach(name=>{
+    const sc=s.schedules[name]||{};
+    h+='<tr><td class="sticky">'+esc(name)+'</td>';
+    for(let d=1;d<=n;d++){
+      const v=sc[String(d)]||'';
+      const cls=v==='rest'?'rest':v==='early'?'early':v==='late'?'late':'';
+      const txt=v==='rest'?'休':v==='early'?'早':v==='late'?'晚':'';
+      h+='<td class="'+cls+'">'+txt+'</td>';
+    }
     h+='</tr>';
   });
-  h+='</tbody></table>';
-  document.getElementById('admGrid').innerHTML=h;
-}
-function admSet(name,d){ admState.draft[name]=admState.draft[name]||{}; admState.draft[name][d]=cycle(admState.draft[name][d]||''); renderAdmGrid(); }
-async function admSaveAll(){
-  try{
-    await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:'__all__',schedule:admState.draft})});
-    // 逐人保存
-    for(const name of Object.keys(admState.draft)){
-      await api('/api/admin/save',{method:'POST',body:JSON.stringify({token:admState.token,month:admState.month,emp:name,schedule:admState.draft[name]})});
-    }
-    showMsg('admMsg','已保存 '+monthLabel(admState.month)+' 排班','ok');
-  }catch(e){ showMsg('admMsg',e,'err'); }
-}
-function admExport(){ window.open(API+'/api/admin/export?token='+encodeURIComponent(admState.token)+'&month='+admState.month, '_blank'); }
-
-/* ---------- 设置 ---------- */
-async function openSettings(){
-  try{
-    const d=await api('/api/admin/data?token='+admState.token);
-    document.getElementById('setCompany').value=d.config.company;
-    document.getElementById('setEarly').value=d.config.earlyShift;
-    document.getElementById('setLate').value=d.config.lateShift;
-    document.getElementById('setRest').value=d.config.restDaysPerMonth;
-    document.getElementById('setPwd').value='';
-    const box=document.getElementById('setEmps'); box.innerHTML='';
-    d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
-    document.getElementById('setOverlay').classList.remove('hidden');
-  }catch(e){ showMsg('admMsg',e,'err'); }
-}
-function addEmpRow(name,pwd){ const box=document.getElementById('setEmps'); const row=document.createElement('div'); row.className='emp-row'; row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`; box.appendChild(row); }
-function closeSettings(){ document.getElementById('setOverlay').classList.add('hidden'); }
-async function saveSettings(){
-  const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
-  const cfg={ company:document.getElementById('setCompany').value, earlyShift:document.getElementById('setEarly').value, lateShift:document.getElementById('setLate').value, restDaysPerMonth:Number(document.getElementById('setRest').value), employees:emps, adminPassword:document.getElementById('setPwd').value };
-  try{ await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})}); showMsg('setMsg','设置已保存，正在刷新…','ok'); await loadConfig(); setTimeout(closeSettings,600); }
-  catch(e){ showMsg('setMsg',e,'err'); }
+  h+='</tbody></table></div>';
+  document.getElementById('allCal').innerHTML=h;
 }
 
-loadConfig().catch(e=>showMsg('empMsg',e,'err'));
+document.getElementById('btnEmpLoad').disabled=true;
+loadConfig().then(()=>{document.getElementById('btnEmpLoad').disabled=false;}).catch(e=>showMsg('empMsg',e,'err'));
 </script>
 </body>
 </html>

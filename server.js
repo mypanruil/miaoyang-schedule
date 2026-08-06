@@ -18,7 +18,7 @@ const DEFAULT_CONFIG = {
   earlyShift: '09:00-17:00',
   lateShift: '10:00-19:00',
   restDaysPerMonth: 5,
-  adminPassword: 'MiaoYang@2026',
+  maxModifyPerMonth: 5,
   employees: Array.from({ length: 12 }, (_, i) => ({ name: '员工' + String(i + 1).padStart(2, '0'), pin: '' }))
 };
 
@@ -29,10 +29,11 @@ function loadData() {
     if (!d.config.employees || !d.config.employees.length) d.config.employees = DEFAULT_CONFIG.employees;
     d.schedules = d.schedules || {};      // schedules[month][emp] = {day: 'early'|'late'|'rest'}
     d.lastSubmitted = d.lastSubmitted || {}; // lastSubmitted[emp] = ISO
+    d.submitCount = d.submitCount || {};      // submitCount[month][emp] = 总提交次数
     d.adminTokens = d.adminTokens || [];
     return d;
   } catch (e) {
-    const d = { config: DEFAULT_CONFIG, schedules: {}, lastSubmitted: {}, adminTokens: [] };
+    const d = { config: DEFAULT_CONFIG, schedules: {}, lastSubmitted: {}, adminTokens: [], submitCount: {} };
     saveData(d);
     return d;
   }
@@ -40,12 +41,17 @@ function loadData() {
 function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
 let DATA = loadData();
-// 安全：把历史弱默认密码 admin123 升级为强密码
-if (DATA.config.adminPassword === 'admin123') {
-  DATA.config.adminPassword = DEFAULT_CONFIG.adminPassword;
-  saveData(DATA);
-  console.log('[安全] 已将历史默认管理员密码 admin123 升级为强密码');
+// 安全：管理员密码不再硬编码默认值。优先级：环境变量 ADMIN_PASSWORD > 已保存密码 > 首次随机生成
+if (process.env.ADMIN_PASSWORD) {
+  DATA.config.adminPassword = process.env.ADMIN_PASSWORD;
 }
+if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = ''; // 历史弱密码清空
+if (!DATA.config.adminPassword) {
+  const rand = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+  DATA.config.adminPassword = rand;
+  console.log('[安全] 未配置管理员密码，已自动生成随机密码: ' + rand + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 指定固定强密码）');
+}
+saveData(DATA);
 const adminTokens = new Set(DATA.adminTokens);
 
 function readBody(req, cb) {
@@ -77,6 +83,7 @@ function publicConfig() {
     earlyShift: DATA.config.earlyShift,
     lateShift: DATA.config.lateShift,
     restDaysPerMonth: DATA.config.restDaysPerMonth,
+    maxModifyPerMonth: DATA.config.maxModifyPerMonth,
     employees: DATA.config.employees.map(e => ({ name: e.name, hasPin: !!(e.pin && e.pin.length) }))
   };
 }
@@ -87,10 +94,27 @@ function daysInMonth(month) {
 function countRest(schedule) {
   return Object.values(schedule || {}).filter(v => v === 'rest').length;
 }
-function lockInfo(emp) {
-  // 员工提交后可随时更改，不再锁定；仅记录最后提交时间供参考
-  const last = DATA.lastSubmitted[emp];
-  return { locked: false, lastEdit: last || null };
+function countShift(schedule) {
+  let e = 0, l = 0, r = 0;
+  Object.values(schedule || {}).forEach(v => {
+    if (v === 'early') e++;
+    else if (v === 'late') l++;
+    else if (v === 'rest') r++;
+  });
+  return { e, l, r };
+}
+function firstOffset(month) {
+  const [y, m] = month.split('-').map(Number);
+  return (new Date(y, m - 1, 1).getDay() + 6) % 7; // 周一=0
+}
+// 注意：提交锁定现在由 modifyInfo() 基于 submitCount 判断；最后提交时间直接读 DATA.lastSubmitted
+function modifyInfo(emp, month) {
+  const max = DATA.config.maxModifyPerMonth;
+  const count = (DATA.submitCount[month] && DATA.submitCount[month][emp]) || 0; // 总提交次数（首次+修改）
+  const modified = Math.max(0, count - 1); // 首次提交不算"修改"
+  const left = Math.max(0, max - modified); // 剩余修改次数
+  const locked = count >= 1 && left <= 0; // 已提交且次数用尽
+  return { count, modified, left, locked, max };
 }
 
 const server = http.createServer((req, res) => {
@@ -111,7 +135,8 @@ const server = http.createServer((req, res) => {
     const emp = url.searchParams.get('emp');
     const month = url.searchParams.get('month');
     const sch = (DATA.schedules[month] && DATA.schedules[month][emp]) || {};
-    return sendJson(res, 200, { schedule: sch, ...lockInfo(emp), restDays: countRest(sch) });
+    const mi = modifyInfo(emp, month);
+    return sendJson(res, 200, { schedule: sch, lastEdit: DATA.lastSubmitted[emp] || null, restDays: countRest(sch), maxModify: mi.max, leftModify: mi.left, locked: mi.locked, submitted: mi.count >= 1 });
   }
 
   // ---- 员工：提交排班 ----
@@ -124,12 +149,45 @@ const server = http.createServer((req, res) => {
       if (!empCfg) return sendJson(res, 400, { error: '员工不存在' });
       if (empCfg.pin && empCfg.pin.length && String(pin) !== empCfg.pin) return sendJson(res, 403, { error: 'PIN 不正确' });
       const rest = countRest(schedule);
-      if (rest !== DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数必须为 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
+      if (rest > DATA.config.restDaysPerMonth) return sendJson(res, 400, { error: `休息天数不能超过 ${DATA.config.restDaysPerMonth} 天（当前 ${rest} 天）` });
+      const mi = modifyInfo(emp, month);
+      if (mi.count >= 1 && mi.left <= 0) return sendJson(res, 400, { error: `本月修改次数已用完（共 ${mi.max} 次）` });
+      // 超期校验：整月已过则不可提交；当月只允许修改今天及之后的日期
+      const now = new Date();
+      const [yy, mm] = month.split('-').map(Number);
+      const curY = now.getFullYear(), curM = now.getMonth() + 1;
+      if (yy < curY || (yy === curY && mm < curM)) return sendJson(res, 400, { error: '该月排班已过期，不能修改' });
+      if (yy === curY && mm === curM) {
+        const today = now.getDate();
+        const prev = (DATA.schedules[month] && DATA.schedules[month][emp]) || {};
+        for (const k of Object.keys(schedule)) {
+          const dd = Number(k);
+          if (dd < today && prev[k] !== undefined && schedule[k] !== prev[k]) {
+            return sendJson(res, 400, { error: `已过期的日期（${mm}月${dd}日及之前）不能修改` });
+          }
+        }
+      }
       DATA.schedules[month] = DATA.schedules[month] || {};
       DATA.schedules[month][emp] = schedule;
+      DATA.submitCount[month] = DATA.submitCount[month] || {};
+      DATA.submitCount[month][emp] = mi.count + 1;
       DATA.lastSubmitted[emp] = new Date().toISOString();
       saveData(DATA);
-      return sendJson(res, 200, { ok: true, lastEdit: lockInfo(emp).lastEdit, restDays: rest });
+      const after = modifyInfo(emp, month);
+      return sendJson(res, 200, { ok: true, lastEdit: DATA.lastSubmitted[emp] || null, restDays: rest, maxModify: after.max, leftModify: after.left, locked: after.locked });
+    });
+  }
+
+  // ---- 全员排班公开总览（员工可查看汇总结果）----
+  if (p === '/api/summary' && req.method === 'GET') {
+    const month = url.searchParams.get('month');
+    if (!month) return sendJson(res, 400, { error: '缺少月份' });
+    const sch = DATA.schedules[month] || {};
+    return sendJson(res, 200, {
+      month,
+      days: daysInMonth(month),
+      employees: DATA.config.employees.map(e => e.name),
+      schedules: sch
     });
   }
 
@@ -189,12 +247,23 @@ const server = http.createServer((req, res) => {
     });
   }
 
-  // ---- 管理员：解除某员工锁定 ----
+  // ---- 管理员：解除某员工锁定（重置其修改次数）----
   if (p === '/api/admin/unlock' && req.method === 'POST') {
     return readBody(req, (err, b) => {
+      if (err) return sendJson(res, 400, { error: '数据格式错误' });
       const token = (b && b.token) || req.headers['x-admin-token'];
       if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
-      if (b && b.emp) { delete DATA.lastSubmitted[b.emp]; saveData(DATA); }
+      const emp = b && b.emp;
+      if (!emp) return sendJson(res, 400, { error: '缺少员工' });
+      // 锁定由 submitCount 决定，需重置对应月份的提交计数；不指定月份则重置全部月份
+      if (b.month && DATA.submitCount[b.month]) {
+        delete DATA.submitCount[b.month][emp];
+        if (!Object.keys(DATA.submitCount[b.month]).length) delete DATA.submitCount[b.month];
+      } else if (!b.month && DATA.submitCount) {
+        for (const m of Object.keys(DATA.submitCount)) delete DATA.submitCount[m][emp];
+      }
+      delete DATA.lastSubmitted[emp];
+      saveData(DATA);
       return sendJson(res, 200, { ok: true });
     });
   }
@@ -211,6 +280,95 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ---- 管理员：清除员工排班记录 ----
+  if (p === '/api/admin/clear' && req.method === 'POST') {
+    return readBody(req, (err, b) => {
+      if (err) return sendJson(res, 400, { error: '数据格式错误' });
+      const token = b.token || req.headers['x-admin-token'];
+      if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
+      const emp = b.emp;
+      if (!emp) return sendJson(res, 400, { error: '缺少员工' });
+      let removed = 0;
+      if (b.allMonths) {
+        for (const m of Object.keys(DATA.schedules)) {
+          if (DATA.schedules[m] && DATA.schedules[m][emp]) { delete DATA.schedules[m][emp]; removed++; }
+        }
+        if (DATA.submitCount) for (const m of Object.keys(DATA.submitCount)) { if (DATA.submitCount[m] && DATA.submitCount[m][emp]) delete DATA.submitCount[m][emp]; }
+        delete DATA.lastSubmitted[emp];
+      } else if (b.month) {
+        if (DATA.schedules[b.month] && DATA.schedules[b.month][emp]) { delete DATA.schedules[b.month][emp]; removed++; }
+        if (DATA.submitCount && DATA.submitCount[b.month] && DATA.submitCount[b.month][emp]) delete DATA.submitCount[b.month][emp];
+        if (DATA.lastSubmitted) delete DATA.lastSubmitted[emp];
+      } else {
+        return sendJson(res, 400, { error: '缺少月份（或未指定全部月份）' });
+      }
+      saveData(DATA);
+      return sendJson(res, 200, { ok: true, removed });
+    });
+  }
+
+  // ---- 管理员：多维度统计（月底汇总分析）----
+  if (p === '/api/admin/stats' && req.method === 'GET') {
+    const token = url.searchParams.get('token') || req.headers['x-admin-token'];
+    if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
+    const month = url.searchParams.get('month');
+    if (!month) return sendJson(res, 400, { error: '缺少月份' });
+    const cfg = DATA.config;
+    const names = cfg.employees.map(e => e.name);
+    const n = daysInMonth(month);
+    const sch = DATA.schedules[month] || {};
+    const off = firstOffset(month);
+
+    const perEmployee = names.map(name => {
+      const s = sch[name] || {};
+      const c = countShift(s);
+      const submitted = Object.keys(s).length > 0;
+      return { name, early: c.e, late: c.l, rest: c.r, submitted, overRest: c.r > cfg.restDaysPerMonth };
+    });
+
+    const perDay = [];
+    for (let d = 1; d <= n; d++) {
+      let e = 0, l = 0, r = 0;
+      names.forEach(name => {
+        const v = (sch[name] || {})[String(d)];
+        if (v === 'early') e++;
+        else if (v === 'late') l++;
+        else if (v === 'rest') r++;
+      });
+      perDay.push({ day: d, weekday: (off + d - 1) % 7, early: e, late: l, rest: r });
+    }
+
+    let totalE = 0, totalL = 0, totalR = 0, wkE = 0, wkL = 0, wkR = 0, weE = 0, weL = 0, weR = 0, submitted = 0;
+    names.forEach(name => {
+      const s = sch[name] || {};
+      const c = countShift(s);
+      totalE += c.e; totalL += c.l; totalR += c.r;
+      if (Object.keys(s).length > 0) submitted++;
+    });
+    perDay.forEach(d => {
+      if (d.weekday === 5 || d.weekday === 6) { weE += d.early; weL += d.late; weR += d.rest; }
+      else { wkE += d.early; wkL += d.late; wkR += d.rest; }
+    });
+
+    // 休息天数分布（按休息天数分组的人数）
+    const restDist = {};
+    perEmployee.forEach(e => { restDist[e.rest] = (restDist[e.rest] || 0) + 1; });
+
+    return sendJson(res, 200, {
+      month,
+      days: n,
+      config: { company: cfg.company, earlyShift: cfg.earlyShift, lateShift: cfg.lateShift, restDaysPerMonth: cfg.restDaysPerMonth },
+      perEmployee,
+      perDay,
+      totals: { early: totalE, late: totalL, rest: totalR },
+      weekday: { early: wkE, late: wkL, rest: wkR },
+      weekend: { early: weE, late: weL, rest: weR },
+      restDist,
+      submitted,
+      total: names.length
+    });
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ error: 'not found' }));
 });
@@ -224,7 +382,7 @@ function buildReportHtml(month, sch) {
   for (const name of names) {
     const s = sch[name] || {};
     const rest = countRest(s);
-    const bad = rest !== cfg.restDaysPerMonth;
+    const bad = rest > cfg.restDaysPerMonth;
     rows += `<tr><td class="${bad ? 'bad' : ''}">${esc(name)}${bad ? ` <span class="warn">(${rest}天)</span>` : ''}</td>`;
     for (let d = 1; d <= n; d++) {
       const v = s[String(d)] || '';
@@ -255,5 +413,5 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': 
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('排班系统已启动: http://localhost:' + PORT);
-  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD || DATA.config.adminPassword) + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 中修改）');
+  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD ? '(环境变量 ADMIN_PASSWORD)' : DATA.config.adminPassword) + ' （建议通过环境变量 ADMIN_PASSWORD 指定固定强密码）');
 });
