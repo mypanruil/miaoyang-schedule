@@ -14,6 +14,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 
 const DEFAULT_CONFIG = {
+  configVersion: 2,
   company: '徐州妙漾医疗美容有限公司',
   earlyShift: '09:00-17:00',
   lateShift: '10:00-19:00',
@@ -42,14 +43,16 @@ function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), '
 
 let DATA = loadData();
 // 管理员密码：环境变量 ADMIN_PASSWORD 优先 > 已保存密码 > 默认 admin
+// configVersion=2: 自动将旧随机密码统一重置为 admin（用户改过后不再覆盖）
+if (!DATA.config.configVersion || DATA.config.configVersion < 2) {
+  DATA.config.adminPassword = 'admin';
+  DATA.config.configVersion = 2;
+  console.log('[安全] 密码已自动重置为默认值 admin（建议登录后台后通过"修改密码"自行更改）');
+}
 if (process.env.ADMIN_PASSWORD) {
   DATA.config.adminPassword = process.env.ADMIN_PASSWORD;
 }
-if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = 'admin'; // 历史弱密码清理
-if (!DATA.config.adminPassword) {
-  DATA.config.adminPassword = 'admin';
-  console.log('[安全] 管理员默认密码: admin（建议登录后台后通过"修改密码"自行更改，或通过环境变量 ADMIN_PASSWORD 设置）');
-}
+if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = 'admin';
 saveData(DATA);
 const adminTokens = new Set(DATA.adminTokens);
 
