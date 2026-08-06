@@ -186,6 +186,7 @@
         <div class="hint" id="empHint">提交后可随时修改，重新提交即覆盖</div>
       </div>
       <div class="legend">
+        <span><span class="dot" style="background:#cbd5e1"></span>未排</span>
         <span><span class="dot" style="background:var(--full)"></span>通班 <span id="lgFull"></span></span>
         <span><span class="dot" style="background:var(--early)"></span>早班 <span id="lgEarly"></span></span>
         <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
@@ -360,7 +361,7 @@ function updateSubmitUI(){
 }
 function optHtml(d,past){
   const v=empState.schedule[d]||'';
-  const opts=[{k:'full',t:'通班'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
+  const opts=[{k:'',t:'未排'},{k:'full',t:'通班'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
   return `<select ${past?'disabled':''} onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
