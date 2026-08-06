@@ -43,11 +43,17 @@ function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), '
 
 let DATA = loadData();
 // 管理员密码：环境变量 ADMIN_PASSWORD 优先 > 已保存密码 > 默认 admin
-// configVersion=2: 自动将旧随机密码统一重置为 admin（用户改过后不再覆盖）
+// configVersion=2: 清理历史遗留密码问题——仅当密码为空 / 旧默认 admin123 /
+// 疑似旧版自动生成的16位随机密码（[a-zA-Z0-9]×16）时重置为 admin；
+// 用户在后台手动设置过的密码（如 newpass456）一律保留，不再覆盖
 if (!DATA.config.configVersion || DATA.config.configVersion < 2) {
-  DATA.config.adminPassword = 'admin';
+  const p = String(DATA.config.adminPassword || '');
+  const looksRandom = /^[a-zA-Z0-9]{16}$/.test(p);
+  if (!p || p === 'admin123' || looksRandom) {
+    DATA.config.adminPassword = 'admin';
+    console.log('[安全] 密码已重置为默认值 admin（建议登录后台后通过"修改密码"自行更改）');
+  }
   DATA.config.configVersion = 2;
-  console.log('[安全] 密码已自动重置为默认值 admin（建议登录后台后通过"修改密码"自行更改）');
 }
 if (process.env.ADMIN_PASSWORD) {
   DATA.config.adminPassword = process.env.ADMIN_PASSWORD;
