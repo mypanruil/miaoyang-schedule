@@ -301,7 +301,7 @@ async function loadConfig(){
   document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift+' ｜ 通班 '+CONFIG.fullShift;
 
   const sel=document.getElementById('empSel');sel.innerHTML='';
-  CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
+  CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.realName||e.name;sel.appendChild(o);});
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
   fillYearMonth('all', curMonth(new Date()));
@@ -514,10 +514,11 @@ function renderAllTable(s){
     leaveMap[emp]=set;
   });
   h+='</tr></thead><tbody>';
+  const empDisp={};(CONFIG.employees||[]).forEach(e=>empDisp[e.name]=e.realName||e.name);
   s.employees.forEach(name=>{
     const sc=s.schedules[name]||{};
     const lv=leaveMap[name];
-    h+='<tr><td class="sticky">'+escHtml(name)+'</td>';
+    h+='<tr><td class="sticky">'+escHtml(empDisp[name]||name)+'</td>';
     for(let d=1;d<=n;d++){
       if(lv&&lv.has(d)){h+='<td class="leave">请</td>';continue;}
       const v=sc[String(d)]||'';

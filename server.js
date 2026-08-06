@@ -92,7 +92,7 @@ function publicConfig() {
     lateShift: DATA.config.lateShift,
     fullShift: DATA.config.fullShift,
     restDaysPerMonth: DATA.config.restDaysPerMonth,
-    employees: DATA.config.employees.map(e => ({ name: e.name, hasPin: !!(e.pin && e.pin.length) }))
+    employees: DATA.config.employees.map(e => ({ name: e.name, realName: e.realName || '', hasPin: !!(e.pin && e.pin.length) }))
   };
 }
 function daysInMonth(month) {
@@ -363,7 +363,7 @@ const server = http.createServer((req, res) => {
       if (typeof c.fullShift === 'string') DATA.config.fullShift = c.fullShift;
       if (Number.isInteger(c.restDaysPerMonth)) DATA.config.restDaysPerMonth = c.restDaysPerMonth;
       if (Array.isArray(c.employees)) {
-        DATA.config.employees = c.employees.map(e => ({ name: String(e.name || '').trim() || '未命名', pin: String(e.pin || '') }));
+        DATA.config.employees = c.employees.map(e => ({ name: String(e.name || '').trim() || '未命名', realName: (e.realName != null ? String(e.realName) : ''), pin: String(e.pin || '') }));
       }
       if (typeof c.adminPassword === 'string' && c.adminPassword.length) DATA.config.adminPassword = c.adminPassword;
       saveData(DATA);
@@ -449,6 +449,8 @@ const server = http.createServer((req, res) => {
     const month = url.searchParams.get('month');
     if (!month) return sendJson(res, 400, { error: '缺少月份' });
     const cfg = DATA.config;
+    const empReal = {};
+    cfg.employees.forEach(e => { empReal[e.name] = e.realName || ''; });
     const names = cfg.employees.map(e => e.name);
     const n = daysInMonth(month);
     const sch = DATA.schedules[month] || {};
@@ -460,7 +462,7 @@ const server = http.createServer((req, res) => {
       const submitted = Object.keys(s).length > 0;
       const empLeaves = getLeaves(name, month);
       const leaveDays = empLeaves.reduce((sum, l) => sum + (l.days ? l.days.length : 0), 0);
-      return { name, early: c.e, late: c.l, full: c.f, rest: c.r, submitted, overRest: c.r > cfg.restDaysPerMonth, leaveDays };
+      return { name, realName: empReal[name] || '', early: c.e, late: c.l, full: c.f, rest: c.r, submitted, overRest: c.r > cfg.restDaysPerMonth, leaveDays };
     });
 
     const perDay = [];

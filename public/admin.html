@@ -339,7 +339,7 @@
       <div class="field sm"><label>每月休息天数</label><input id="setRest" type="number"></div>
     </div>
     <label>管理员密码（留空不修改）</label><input id="setPwd" type="password" placeholder="新密码">
-    <label>员工名单（姓名 / PIN，PIN 可空）</label>
+    <label>员工名单（编号 / 姓名 / PIN，PIN 可空）</label>
     <div id="setEmps"></div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="ghost" onclick="addEmpRow()">+ 添加员工</button>
@@ -403,6 +403,8 @@ function wkName(d){const w=((d.getDay()+6)%7);return ['一','二','三','四','�
 function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
 function daysIn(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
 function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;}
+let empReal={};
+function dispEmp(name){return (empReal&&empReal[name])?empReal[name]:name;}
 
 async function api(path,opts){opts=opts||{};const r=await fetch(API+path,Object.assign({headers:{'Content-Type':'application/json'}},opts));let j=null;try{j=await r.json();}catch(e){}if(!r.ok)throw (j&&j.error)||('错误'+r.status);return j;}
 function showMsg(id,text,kind){const el=document.getElementById(id);el.className='msg '+(kind||'info');el.textContent=text;}
@@ -410,6 +412,7 @@ function showMsg(id,text,kind){const el=document.getElementById(id);el.className
 async function loadConfig(){
   CONFIG=await api('/api/config');
   if(!CONFIG)throw new Error('配置加载失败');
+  empReal={}; (CONFIG.employees||[]).forEach(e=>empReal[e.name]=e.realName||e.name);
   const bs=document.getElementById('brandSub'); if(bs)bs.textContent=CONFIG.company;
   const fn=document.getElementById('footNote'); if(fn)fn.textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
   fillYearMonth('adm',admState.month);
@@ -490,7 +493,7 @@ function renderAdmGrid(){
     let tag=bad?' <span class="mbad">休'+c.r+'天超'+CONFIG.restDaysPerMonth+'</span>':(submitted?'':' <span class="mbad" style="color:var(--mut)">未提交</span>');
     cards+=`<div class="mcard${bad?' bad':''}">
       <div class="mcard-head">
-        <div class="mname">${escHtml(name)}${tag}</div>
+        <div class="mname">${escHtml(dispEmp(name))}${tag}</div>
         <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
       </div>
       <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es full">通${c.f}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
@@ -580,7 +583,7 @@ function renderAdmMobile(){
     let tag=bad?' <span class="mbad">休'+c.r+'天超'+CONFIG.restDaysPerMonth+'</span>':(submitted?'':' <span class="mbad" style="color:var(--mut)">未提交</span>');
     h+=`<div class="mcard${bad?' bad':''}">
       <div class="mcard-head">
-        <div class="mname">${escHtml(name)}${tag}</div>
+        <div class="mname">${escHtml(dispEmp(name))}${tag}</div>
         <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
       </div>
       <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es full">通${c.f}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
@@ -690,14 +693,14 @@ async function openSettings(){
     document.getElementById('setRest').value=d.config.restDaysPerMonth;
     document.getElementById('setPwd').value='';
     const box=document.getElementById('setEmps');box.innerHTML='';
-    d.config.employees.forEach(e=>addEmpRow(e.name,e.pin));
+    d.config.employees.forEach(e=>addEmpRow(e.name,e.realName,e.pin));
     document.getElementById('setOverlay').classList.remove('hidden');
   }catch(e){showMsg('admMsg',e,'err');}
 }
-function addEmpRow(name,pwd){const box=document.getElementById('setEmps');const row=document.createElement('div');row.className='emp-row';row.innerHTML=`<input placeholder="姓名" value="${name||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`;box.appendChild(row);}
+function addEmpRow(name,real,pwd){const box=document.getElementById('setEmps');const row=document.createElement('div');row.className='emp-row';row.innerHTML=`<input placeholder="编号" value="${name||''}"><input placeholder="姓名(可空)" value="${real||''}"><input placeholder="PIN(可空)" value="${pwd||''}">`;box.appendChild(row);}
 function closeSettings(){document.getElementById('setOverlay').classList.add('hidden');}
 async function saveSettings(){
-  const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,pin:r.children[1].value}));
+  const emps=Array.from(document.querySelectorAll('#setEmps .emp-row')).map(r=>({name:r.children[0].value,realName:r.children[1].value,pin:r.children[2].value}));
   const cfg={company:document.getElementById('setCompany').value,earlyShift:document.getElementById('setEarly').value,lateShift:document.getElementById('setLate').value,restDaysPerMonth:Number(document.getElementById('setRest').value),employees:emps,adminPassword:document.getElementById('setPwd').value};
   try{await api('/api/admin/config',{method:'POST',body:JSON.stringify({token:admState.token,config:cfg})});showMsg('setMsg','设置已保存，正在刷新…','ok');await loadConfig();setTimeout(closeSettings,600);}
   catch(e){showMsg('setMsg',e,'err');}
@@ -745,7 +748,7 @@ async function renderStatsCharts(d){
   destroyCharts();
   const C={early:'#2563eb',late:'#d97706',full:'#7c3aed',rest:'#9ca3af'};
   chartMap.pie=new Chart(document.getElementById('chartPie'),{type:'doughnut',data:{labels:['早班','晚班','通班','休息'],datasets:[{data:[d.totals.early,d.totals.late,d.totals.full,d.totals.rest],backgroundColor:[C.early,C.late,C.full,C.rest]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
-  const names=d.perEmployee.map(e=>e.name);
+  const names=d.perEmployee.map(e=>dispEmp(e.name));
   chartMap.emp=new Chart(document.getElementById('chartEmp'),{type:'bar',data:{labels:names,datasets:[{label:'早班',data:d.perEmployee.map(e=>e.early),backgroundColor:C.early},{label:'晚班',data:d.perEmployee.map(e=>e.late),backgroundColor:C.late},{label:'通班',data:d.perEmployee.map(e=>e.full),backgroundColor:C.full},{label:'休息',data:d.perEmployee.map(e=>e.rest),backgroundColor:C.rest}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
   chartMap.day=new Chart(document.getElementById('chartDay'),{type:'bar',data:{labels:d.perDay.map(x=>x.day),datasets:[{label:'早班',data:d.perDay.map(x=>x.early),backgroundColor:C.early},{label:'晚班',data:d.perDay.map(x=>x.late),backgroundColor:C.late},{label:'通班',data:d.perDay.map(x=>x.full),backgroundColor:C.full},{label:'休息',data:d.perDay.map(x=>x.rest),backgroundColor:C.rest}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
   chartMap.rest=new Chart(document.getElementById('chartRest'),{type:'bar',data:{labels:names,datasets:[{label:'休息天数',data:d.perEmployee.map(e=>e.rest),backgroundColor:d.perEmployee.map(e=>e.overRest?'#ef4444':'#86efac')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
@@ -757,7 +760,7 @@ function renderStatsTable(d){
   const head='<thead><tr><th>员工</th><th>早班</th><th>晚班</th><th>通班</th><th>休息</th><th>是否超上限</th><th>已提交</th></tr></thead>';
   let body='<tbody>';
   d.perEmployee.forEach(e=>{
-    body+='<tr><td class="emp" style="position:static;min-width:0">'+escHtml(e.name)+'</td><td>'+e.early+'</td><td>'+e.late+'</td><td>'+e.full+'</td><td>'+e.rest+'</td><td class="'+(e.overRest?'over':'')+'">'+(e.overRest?'超'+d.config.restDaysPerMonth+'天':'')+'</td><td>'+(e.submitted?'是':'否')+'</td></tr>';
+    body+='<tr><td class="emp" style="position:static;min-width:0">'+escHtml(dispEmp(e.name))+'</td><td>'+e.early+'</td><td>'+e.late+'</td><td>'+e.full+'</td><td>'+e.rest+'</td><td class="'+(e.overRest?'over':'')+'">'+(e.overRest?'超'+d.config.restDaysPerMonth+'天':'')+'</td><td>'+(e.submitted?'是':'否')+'</td></tr>';
   });
   body+='<tr style="font-weight:700"><td>合计</td><td>'+d.totals.early+'</td><td>'+d.totals.late+'</td><td>'+d.totals.full+'</td><td>'+d.totals.rest+'</td><td></td><td>'+d.submitted+'/'+d.total+'</td></tr>';
   body+='</tbody>';
@@ -767,7 +770,7 @@ function exportStatsCSV(){
   if(!statsData){showMsg('statsMsg','请先生成统计','err');return;}
   const d=statsData;
   const rows=[['员工','早班','晚班','通班','休息','是否超上限','已提交']];
-  d.perEmployee.forEach(e=>rows.push([e.name,e.early,e.late,e.full,e.rest,e.overRest?'超'+d.config.restDaysPerMonth+'天':'否',e.submitted?'是':'否']));
+  d.perEmployee.forEach(e=>rows.push([dispEmp(e.name),e.early,e.late,e.full,e.rest,e.overRest?'超'+d.config.restDaysPerMonth+'天':'否',e.submitted?'是':'否']));
   rows.push(['合计',d.totals.early,d.totals.late,d.totals.full,d.totals.rest,'',d.submitted+'/'+d.total]);
   const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -792,7 +795,7 @@ function exportStatsPDF(){
   const imgs={};
   Object.keys(chartMap).forEach(k=>{if(chartMap[k])imgs[k]=chartMap[k].toBase64Image('image/png',1);});
   let tr='';
-  d.perEmployee.forEach(e=>{tr+=`<tr><td>${escHtml(e.name)}</td><td>${e.early}</td><td>${e.late}</td><td>${e.rest}</td><td>${e.overRest?'超'+d.config.restDaysPerMonth+'天':'否'}</td><td>${e.submitted?'是':'否'}</td></tr>`;});
+  d.perEmployee.forEach(e=>{tr+=`<tr><td>${escHtml(dispEmp(e.name))}</td><td>${e.early}</td><td>${e.late}</td><td>${e.rest}</td><td>${e.overRest?'超'+d.config.restDaysPerMonth+'天':'否'}</td><td>${e.submitted?'是':'否'}</td></tr>`;});
   tr+=`<tr style="font-weight:700"><td>合计</td><td>${d.totals.early}</td><td>${d.totals.late}</td><td>${d.totals.rest}</td><td></td><td>${d.submitted}/${d.total}</td></tr>`;
   const w=window.open('','_blank');
   if(!w){showMsg('statsMsg','浏览器拦截了弹窗，请允许弹窗后重试','err');return;}
