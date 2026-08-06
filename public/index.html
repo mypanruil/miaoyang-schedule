@@ -290,6 +290,7 @@ async function loadConfig(){
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
   fillYearMonth('all', curMonth(new Date()));
+  document.getElementById('leaveOverlay').classList.add('hidden');
   document.getElementById('empSubmit').disabled=false;
   loadAll();
 }
