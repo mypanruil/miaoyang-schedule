@@ -73,7 +73,7 @@
   .msg.err{background:#fee2e2;color:#b91c1c;display:block}
   .msg.ok{background:#dcfce7;color:#166534;display:block}
 
-  .hidden{display:none}
+  .hidden{display:none !important}
   footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
 
   /* 全员排班总览 */
@@ -233,7 +233,7 @@
 </div>
 
 <!-- 请假弹窗 -->
-<div id="leaveOverlay" class="overlay hidden" onclick="if(event.target===this)closeLeaveModal()">
+<div id="leaveOverlay" class="overlay" style="display:none" onclick="if(event.target===this)closeLeaveModal()">
   <div class="card">
     <div class="card-title">申请请假</div>
     <div style="display:flex;flex-direction:column;gap:12px">
@@ -290,7 +290,7 @@ async function loadConfig(){
   sel.onchange=updatePinBox; updatePinBox();
   fillYearMonth('emp',empState.month);
   fillYearMonth('all', curMonth(new Date()));
-  document.getElementById('leaveOverlay').classList.add('hidden');
+  document.getElementById('leaveOverlay').style.display='none';
   document.getElementById('empSubmit').disabled=false;
   loadAll();
 }
@@ -408,7 +408,7 @@ async function empSubmit(){
 function openLeaveModal(){
   const emp=document.getElementById('empSel').value;
   if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
-  document.getElementById('leaveOverlay').classList.remove('hidden');
+  document.getElementById('leaveOverlay').style.display='flex';
   // 默认填充当月范围
   const [y,m]=empState.month.split('-');
   const lastDay=daysIn(empState.month);
@@ -417,7 +417,7 @@ function openLeaveModal(){
   document.getElementById('leaveReason').value='';
   document.getElementById('leaveFormMsg').className='msg';
 }
-function closeLeaveModal(){document.getElementById('leaveOverlay').classList.add('hidden');}
+function closeLeaveModal(){document.getElementById('leaveOverlay').style.display='none';}
 async function doLeave(){
   const emp=document.getElementById('empSel').value;
   const pin=document.getElementById('empPin').value||'';
