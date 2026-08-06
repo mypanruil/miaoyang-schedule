@@ -9,8 +9,8 @@
     --primary:#2563eb;--primary-dark:#1d4ed8;
     --bg:#f0f2f5;--panel:#ffffff;--line:#e5e7eb;--txt:#1f2937;--mut:#6b7280;
     --ok:#16a34a;--warn:#d97706;--err:#dc2626;
-    --early:#2563eb;--late:#d97706;--rest:#9ca3af;
-    --earlybg:#eff6ff;--latebg:#fff7ed;--restbg:#f3f4f6;
+    --early:#2563eb;--late:#d97706;--full:#7c3aed;--rest:#9ca3af;
+    --earlybg:#eff6ff;--latebg:#fff7ed;--fullbg:#f5f3ff;--restbg:#f3f4f6;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
@@ -34,6 +34,8 @@
   button.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
   button.ghost:hover{background:#f9fafb}
   button.ok{background:var(--ok)} button.ok:hover{background:#15803d}
+  button.warnbtn{background:var(--warn)} button.warnbtn:hover{background:#b45309}
+  button.sm{padding:6px 12px;font-size:12px}
 
   .row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
   .row .field{flex:0 0 240px;min-width:0}
@@ -74,7 +76,7 @@
   .hidden{display:none}
   footer{font-size:12px;color:var(--mut);text-align:center;margin:20px 0}
 
-  /* ---------- 全员排班总览 ---------- */
+  /* 全员排班总览 */
   .all-table{border-collapse:collapse;width:100%;font-size:12px;min-width:620px;margin-top:4px}
   .all-table th,.all-table td{border:1px solid var(--line);padding:4px 2px;text-align:center;min-width:20px}
   .all-table thead th{background:#f0f2f5;font-weight:600;line-height:1.2}
@@ -82,12 +84,21 @@
   .all-table thead th.sticky{background:#f0f2f5}
   .all-table td.early{background:var(--earlybg);color:var(--early);font-weight:600}
   .all-table td.late{background:var(--latebg);color:var(--late);font-weight:600}
+  .all-table td.full{background:var(--fullbg);color:var(--full);font-weight:600}
   .all-table td.rest{background:var(--restbg);color:var(--rest);font-weight:600}
   .all-table .wd-h{font-size:10px;color:var(--mut);font-weight:400}
   .all-table tbody tr:nth-child(even) td.sticky{background:#fafafa}
   .all-table tbody tr:nth-child(even){background:#fafafa}
 
-  /* ---------- 移动端优化 ---------- */
+  /* 请假弹窗 */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;backdrop-filter:blur(2px)}
+  .overlay .card{max-width:480px;width:100%;max-height:90vh;overflow:auto;margin:0}
+
+  /* 请假记录 */
+  .leave-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#f9fafb;border-radius:8px;margin-bottom:6px;flex-wrap:wrap}
+  .leave-item .leave-info{font-size:13px;color:var(--txt)}
+  .leave-item .leave-reason{font-size:12px;color:var(--mut);margin-top:2px}
+
   @media (max-width:640px){
     body{font-size:15px}
     .topbar{padding:10px 0}
@@ -144,7 +155,7 @@
     <div class="card">
       <div class="card-title">
         员工自助排班
-        <span class="meta" id="empMeta">早班 09:00-17:00 &nbsp; 晚班 10:00-19:00 &nbsp; 每月休息 5 天</span>
+        <span class="meta" id="empMeta">早班 09:00-17:00 &nbsp; 晚班 10:00-19:00 &nbsp; 通班 09:00-19:00 &nbsp; 每月休息 5 天</span>
       </div>
       <div class="row">
         <div class="field">
@@ -165,6 +176,7 @@
         <div class="actions">
           <button id="btnEmpLoad" onclick="empLoad()">加载我的排班</button>
           <button class="ghost" onclick="empClear()">清空重填</button>
+          <button class="ghost" onclick="openLeaveModal()">请假申请</button>
         </div>
       </div>
       <div id="empMsg" class="msg"></div>
@@ -174,6 +186,7 @@
         <div class="hint" id="empHint">提交后可随时修改，重新提交即覆盖</div>
       </div>
       <div class="legend">
+        <span><span class="dot" style="background:var(--full)"></span>通班 <span id="lgFull"></span></span>
         <span><span class="dot" style="background:var(--early)"></span>早班 <span id="lgEarly"></span></span>
         <span><span class="dot" style="background:var(--late)"></span>晚班 <span id="lgLate"></span></span>
         <span><span class="dot" style="background:var(--rest)"></span>休息</span>
@@ -183,7 +196,14 @@
 
       <div class="submit-area">
         <button class="ok" id="empSubmit" onclick="empSubmit()" disabled>提交排班</button>
-        <div class="submit-tip" id="empSubmitTip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时重新提交覆盖。</div>
+        <div class="submit-tip" id="empSubmitTip">休息天数不限定，但不能超过管理员设定的每月休息天数（<b id="needRest">5</b> 天）。提交后可随时修改。</div>
+      </div>
+
+      <!-- 请假记录区 -->
+      <div id="leaveSection" class="hidden" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="card-title" style="font-size:14px">我的请假记录</div>
+        <div id="leaveList"></div>
+        <div id="leaveMsg" class="msg"></div>
       </div>
     </div>
   </section>
@@ -197,26 +217,53 @@
       </div>
       <div class="row">
         <div class="field sm">
-          <label>查看月份</label>
+          <label>排班月份</label>
           <div class="month-picker">
             <select id="allYear" onchange="loadAll()"></select>
             <select id="allMonth" onchange="loadAll()"></select>
           </div>
         </div>
-        <div class="actions"><button class="ghost" onclick="loadAll()">刷新</button></div>
       </div>
-      <div id="allMsg" class="msg"></div>
       <div class="cal" id="allCal"></div>
+      <div id="allMsg" class="msg"></div>
     </div>
   </section>
 
   <footer id="footNote"></footer>
 </div>
 
+<!-- 请假弹窗 -->
+<div id="leaveOverlay" class="overlay hidden" onclick="if(event.target===this)closeLeaveModal()">
+  <div class="card">
+    <div class="card-title">申请请假</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>开始日期</label>
+          <input id="leaveFrom" type="date">
+        </div>
+        <div class="field" style="flex:1">
+          <label>结束日期</label>
+          <input id="leaveTo" type="date">
+        </div>
+      </div>
+      <div class="field">
+        <label>请假事由（选填）</label>
+        <input id="leaveReason" type="text" placeholder="请输入请假事由">
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="doLeave()">提交请假</button>
+        <button class="ghost" onclick="closeLeaveModal()">取消</button>
+      </div>
+      <div id="leaveFormMsg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const API='';
 let CONFIG=null;
-let empLock={locked:false,left:5,submitted:false,max:5,expired:false};
+let empExpired=false;
 const empState={month:curMonth(new Date()),schedule:{}};
 
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -231,11 +278,12 @@ async function loadConfig(){
   CONFIG=await api('/api/config');
   if(!CONFIG)throw new Error('配置加载失败');
   document.getElementById('brandSub').textContent=CONFIG.company;
-  document.getElementById('empMeta').innerHTML='早班 '+CONFIG.earlyShift+' &nbsp; 晚班 '+CONFIG.lateShift+' &nbsp; 每月休息 '+CONFIG.restDaysPerMonth+' 天';
+  document.getElementById('empMeta').innerHTML='早班 '+CONFIG.earlyShift+' &nbsp; 晚班 '+CONFIG.lateShift+' &nbsp; 通班 '+CONFIG.fullShift+' &nbsp; 每月休息 '+CONFIG.restDaysPerMonth+' 天';
   document.getElementById('lgEarly').textContent=CONFIG.earlyShift;
   document.getElementById('lgLate').textContent=CONFIG.lateShift;
+  document.getElementById('lgFull').textContent=CONFIG.fullShift;
   document.getElementById('needRest').textContent=CONFIG.restDaysPerMonth;
-  document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift;
+  document.getElementById('footNote').textContent=CONFIG.company+' ｜ 早班 '+CONFIG.earlyShift+' ｜ 晚班 '+CONFIG.lateShift+' ｜ 通班 '+CONFIG.fullShift;
 
   const sel=document.getElementById('empSel');sel.innerHTML='';
   CONFIG.employees.forEach(e=>{const o=document.createElement('option');o.value=e.name;o.textContent=e.name;sel.appendChild(o);});
@@ -280,7 +328,7 @@ async function empClear(){
     const cleaned={};
     for(const k of Object.keys(sch)){
       const dd=Number(k);
-      if(isPastDate(dd)) cleaned[k]=sch[k]; // 已过期 / 过去的日期保留，不能清空
+      if(isPastDate(dd)) cleaned[k]=sch[k];
     }
     empState.schedule=cleaned;
     renderEmpCal();
@@ -297,33 +345,21 @@ async function empLoad(){
     empState.schedule=r.schedule||{};
     const now=new Date(); const cy=now.getFullYear(),cm=now.getMonth()+1;
     const [ey,em]=empState.month.split('-').map(Number);
-    const expired = ey<cy || (ey===cy && em<cm);
-    empLock={locked:!!r.locked||expired, left:r.leftModify, submitted:!!r.submitted, max:r.maxModify||5, expired:expired};
+    empExpired = ey<cy || (ey===cy && em<cm);
     renderEmpCal();
     updateSubmitUI();
-    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班'+(expired?'（该月已过期，仅可查看）':''),'ok');
+    if(r.leaves && r.leaves.length) renderLeaves(r.leaves);
+    showMsg('empMsg','已加载 '+emp+' '+monthLabel(empState.month)+' 的排班'+(empExpired?'（该月已过期，仅可查看）':''),'ok');
   }catch(e){showMsg('empMsg',e,'err');}
 }
 function updateSubmitUI(){
   const btn=document.getElementById('empSubmit');
-  const tip=document.getElementById('empSubmitTip');
-  if(empLock.locked){
-    btn.disabled=true;
-    btn.textContent='已锁定';
-    tip.innerHTML=empLock.expired?('该月已过期，不能修改排班。'):('本月修改次数已用完，排班已锁定（共 '+empLock.max+' 次）。');
-  }else if(empLock.submitted){
-    btn.disabled=false;
-    btn.textContent='修改并提交';
-    tip.innerHTML='本月还可修改 <b>'+empLock.left+'</b> 次。';
-  }else{
-    btn.disabled=false;
-    btn.textContent='提交排班';
-    tip.innerHTML='首次提交后，本月可修改 <b>'+empLock.max+'</b> 次。';
-  }
+  btn.disabled=empExpired;
+  btn.textContent=empExpired?'已过期':'提交排班';
 }
 function optHtml(d,past){
   const v=empState.schedule[d]||'';
-  const opts=[{k:'',t:'未排'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
+  const opts=[{k:'full',t:'通班'},{k:'early',t:'早班'},{k:'late',t:'晚班'},{k:'rest',t:'休息'}];
   return `<select ${past?'disabled':''} onchange="empSet(${d},this.value)">`+opts.map(o=>`<option value="${o.k}"${o.k===v?' selected':''}>${o.t}</option>`).join('')+`</select>`;
 }
 function renderEmpCal(){
@@ -351,7 +387,7 @@ function renderEmpCal(){
   const rc=document.getElementById('empRest');
   rc.className='rest-count'+(rest>need?' bad':'');
   rc.innerHTML='已选休息 <b>'+rest+'</b> / '+need+' 天'+(rest>need?('（超出 '+(rest-need)+' 天，请减少）'):'');
-  document.getElementById('empSubmit').disabled=(rest>need)||empLock.locked;
+  document.getElementById('empSubmit').disabled=(rest>need)||empExpired;
 }
 function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
 async function empSubmit(){
@@ -360,16 +396,58 @@ async function empSubmit(){
   const pin=document.getElementById('empPin').value||'';
   if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   try{
-    const res=await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
-    empLock={locked:!!res.locked, left:res.leftModify, submitted:true, max:res.maxModify||5, expired:empLock.expired};
+    await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     updateSubmitUI();
-    showMsg('empMsg',(empLock.locked?'提交成功！本月修改次数已用完，排班已锁定':'提交成功！可随时修改，重新提交即覆盖'),'ok');
+    showMsg('empMsg','提交成功！随时可以修改，重新提交即覆盖','ok');
     loadAll();
   }catch(e){showMsg('empMsg',e,'err');}
 }
 
+/* ---------- 请假申请 ---------- */
+function openLeaveModal(){
+  const emp=document.getElementById('empSel').value;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
+  document.getElementById('leaveOverlay').classList.remove('hidden');
+  // 默认填充当月范围
+  const [y,m]=empState.month.split('-');
+  const lastDay=daysIn(empState.month);
+  document.getElementById('leaveFrom').value=empState.month+'-01';
+  document.getElementById('leaveTo').value=empState.month+'-'+String(lastDay).padStart(2,'0');
+  document.getElementById('leaveReason').value='';
+  document.getElementById('leaveFormMsg').className='msg';
+}
+function closeLeaveModal(){document.getElementById('leaveOverlay').classList.add('hidden');}
+async function doLeave(){
+  const emp=document.getElementById('empSel').value;
+  const pin=document.getElementById('empPin').value||'';
+  const from=document.getElementById('leaveFrom').value;
+  const to=document.getElementById('leaveTo').value;
+  const reason=document.getElementById('leaveReason').value.trim();
+  if(!from||!to){showMsg('leaveFormMsg','请选择开始和结束日期','err');return;}
+  try{
+    const r=await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
+    showMsg('leaveFormMsg','请假申请已提交','ok');
+    setTimeout(closeLeaveModal,1200);
+    // 刷新请假记录
+    if(!empExpired){empLoad();}
+  }catch(e){showMsg('leaveFormMsg',e,'err');}
+}
+function renderLeaves(leaves){
+  const sec=document.getElementById('leaveSection');
+  const list=document.getElementById('leaveList');
+  if(!leaves||!leaves.length){sec.classList.add('hidden');return;}
+  sec.classList.remove('hidden');
+  list.innerHTML=leaves.map((l,i)=>{
+    const daysText=l.days&&l.days.length?(l.days.length+'天（'+l.from+' ~ '+l.to+'）'):(l.from+' ~ '+l.to);
+    return `<div class="leave-item">
+      <div><div class="leave-info">${daysText}</div>
+      ${l.reason?'<div class="leave-reason">事由：'+escHtml(l.reason)+'</div>':''}</div>
+    </div>`;
+  }).join('');
+}
+
 /* ---------- 全员排班总览 ---------- */
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function getAllMonth(){return document.getElementById('allYear').value+'-'+document.getElementById('allMonth').value;}
 async function loadAll(){
   if(!CONFIG){return;}
@@ -393,11 +471,11 @@ function renderAllTable(s){
   h+='</tr></thead><tbody>';
   s.employees.forEach(name=>{
     const sc=s.schedules[name]||{};
-    h+='<tr><td class="sticky">'+esc(name)+'</td>';
+    h+='<tr><td class="sticky">'+escHtml(name)+'</td>';
     for(let d=1;d<=n;d++){
       const v=sc[String(d)]||'';
-      const cls=v==='rest'?'rest':v==='early'?'early':v==='late'?'late':'';
-      const txt=v==='rest'?'休':v==='early'?'早':v==='late'?'晚':'';
+      const cls=v==='rest'?'rest':v==='early'?'early':v==='late'?'late':v==='full'?'full':'';
+      const txt=v==='rest'?'休':v==='early'?'早':v==='late'?'晚':v==='full'?'通':'';
       h+='<td class="'+cls+'">'+txt+'</td>';
     }
     h+='</tr>';
