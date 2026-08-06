@@ -489,6 +489,7 @@ async function empSubmit(){
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     updateSubmitUI();
     showOkModal('排班已提交成功！随时可以修改，重新提交即覆盖');
+    syncAllMonthTo(empState.month);
     loadAll();
   }catch(e){
     if(e && /PIN/.test(e.message||String(e))){ showPinModal('submit'); return; }
@@ -522,6 +523,8 @@ async function doLeave(){
     const r=await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
     closeLeaveModal();
     showOkModal('请假申请已提交成功');
+    syncAllMonthTo(empState.month);
+    loadAll();
     // 刷新请假记录
     if(!empExpired){empLoad();}
   }catch(e){
@@ -547,6 +550,12 @@ function renderLeaves(leaves){
 /* ---------- 全员排班总览 ---------- */
 function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function getAllMonth(){return document.getElementById('allYear').value+'-'+document.getElementById('allMonth').value;}
+function syncAllMonthTo(m){
+  const [y,mo]=String(m).split('-');
+  const ay=document.getElementById('allYear'), am=document.getElementById('allMonth');
+  if(ay)ay.value=y;
+  if(am)am.value=mo;
+}
 async function loadAll(){
   if(!CONFIG){return;}
   const month=getAllMonth();
