@@ -96,8 +96,21 @@
   .acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:8px}
   .dt-card{grid-column:1 / -1;background:linear-gradient(120deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd}
   .dt-card .mname{color:#0369a1}
-  .dt-card .mcard-head{flex-wrap:wrap}
-  .dtcell{aspect-ratio:auto;min-height:88px;padding:4px 3px;background:#f8fafc;border-color:#e2e8f0;cursor:default}
+  .dt-card .mcard-head{flex-wrap:wrap;align-items:center;gap:6px}
+  /* 每日合计卡片：模式切换 + 日期选择 */
+  .dt-toggle{display:inline-flex;gap:4px;margin-left:auto}
+  .dt-toggle button{font:inherit;font-size:12px;font-weight:600;padding:3px 10px;border-radius:7px;border:1px solid #bae6fd;background:#fff;color:#0369a1;cursor:pointer}
+  .dt-toggle button.on{background:#0369a1;color:#fff;border-color:#0369a1}
+  .dt-label{font-size:12px;color:#0369a1;font-weight:700;margin:8px 2px 4px}
+  .dt-datepick{margin:2px 2px 8px}
+  .dt-datepick input{font:inherit;font-size:13px;padding:5px 8px;border:1px solid #bae6fd;border-radius:8px;color:#0f172a;background:#fff}
+  .dtsingle{display:flex;flex-direction:column;gap:6px;padding:6px 2px 2px}
+  .dts-row{display:flex;gap:10px}
+  .dts-row span{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600}
+  .dts-row span b{font-size:17px;margin-left:2px}
+  .dts-row .dte{color:var(--early)} .dts-row .dtl{color:var(--late)} .dts-row .dtf{color:var(--full)} .dts-row .dtr{color:var(--rest)}
+  .dts-row .dtq.big{color:#fff;background:var(--leavebg);border-color:var(--leave);justify-content:center}
+  .dtcell{aspect-ratio:auto;min-height:88px;padding:4px 3px;background:#f8fafc;border-color:#e2e8f0;cursor:pointer}
   .dtsum{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin-top:4px;width:100%;text-align:left}
   .mcell .dtsum span{font-size:10px;font-weight:600;display:flex;justify-content:space-between;line-height:1.45;font-style:normal}
   .mcell .dtsum span b{font-weight:800}
@@ -382,9 +395,11 @@ const API='';
 let CONFIG=null;
 // 动态加载 Chart.js（仅在统计分析需要时，不阻塞登录）
 function loadChartJS(){return new Promise(function(resolve,reject){if(typeof Chart!=='undefined')return resolve();var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
-const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Date()),data:{schedules:{}},draft:{},leaves:{}};
+const admState={token:localStorage.getItem('admToken')||'',month:curMonth(new Date()),data:{schedules:{}},draft:{},leaves:{},dtView:'today',dtSel:todayStr(),monthCache:{}};
 
 function curMonth(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function wkName(d){const w=((d.getDay()+6)%7);return ['一','二','三','四','五','六','日'][w];}
 function monthLabel(m){const [y,mm]=m.split('-');return y+'年'+Number(mm)+'月';}
 function daysIn(m){const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).getDate();}
 function firstOffset(m){const [y,mm]=m.split('-').map(Number);return (new Date(y,mm-1,1).getDay()+6)%7;}
@@ -457,28 +472,9 @@ function renderAdmGrid(){
   const n=daysIn(admState.month);
   const off=firstOffset(admState.month);
   const wd=['一','二','三','四','五','六','日'];
-  // 计算每日排班合计 + 请假合计
-  const dt={};for(let d=1;d<=n;d++)dt[d]={e:0,l:0,f:0,r:0,q:0};
-  names.forEach(name=>{
-    const s=admState.draft[name]||{};
-    for(let d=1;d<=n;d++){const v=s[d];if(v==='early')dt[d].e++;else if(v==='late')dt[d].l++;else if(v==='full')dt[d].f++;else if(v==='rest')dt[d].r++;}
-    const ld=admLeaveDays(name);
-    ld.forEach(d=>{if(d>=1&&d<=n)dt[d].q++;});
-  });
   const head='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
-  // 每日排班合计卡片（数字汇总版）
-  let dtcells='';
-  for(let d=1;d<=n;d++){
-    const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';const t=dt[d];
-    const q=(t.q>0)?'<span class="dtq">请 <b>'+t.q+'</b></span>':'';
-    dtcells+='<span class="mcell dtcell'+wkcls+'"><b>'+d+'</b><div class="dtsum">'
-      +'<span class="dte">早 <b>'+t.e+'</b></span>'
-      +'<span class="dtl">晚 <b>'+t.l+'</b></span>'
-      +'<span class="dtf">通 <b>'+t.f+'</b></span>'
-      +'<span class="dtr">休 <b>'+t.r+'</b></span>'
-      +q+'</div></span>';
-  }
-  const dtCard='<div class="mcard dt-card"><div class="mcard-head"><div class="mname">每日排班合计</div></div>'+head+'<div class="mcal">'+dtcells+'</div></div>';
+  // 每日排班合计卡片（异步渲染，按 今日/选日期/月历 三种模式）
+  const dtCard='<div class="mcard dt-card" id="dtCard"></div>';
   // 每位员工一张卡片
   let cards='';
   names.forEach(name=>{
@@ -503,9 +499,64 @@ function renderAdmGrid(){
     </div>`;
   });
   document.getElementById('admGrid').innerHTML='<div class="acards">'+dtCard+cards+'</div>';
+  renderDailyCard();
 }
 
+/* ---------- 每日排班合计卡片（今日 / 选日期 / 月历 三模式） ---------- */
+async function getMonthData(m){
+  if(m===admState.month)return {draft:admState.draft,leaves:admState.leaves};
+  if(admState.monthCache[m])return admState.monthCache[m];
+  const d=await api('/api/admin/data?token='+admState.token+'&month='+m);
+  const cache={draft:(d.schedules&&d.schedules[m])||{},leaves:d.leaves||{}};
+  admState.monthCache[m]=cache;
+  return cache;
+}
+function dayTotals(cache,m,day){
+  let e=0,l=0,f=0,r=0,q=0;
+  Object.keys(cache.draft).forEach(name=>{const v=cache.draft[name][day];if(v==='early')e++;else if(v==='late')l++;else if(v==='full')f++;else if(v==='rest')r++;});
+  const [yy,mm]=m.split('-').map(Number);const cur=new Date(yy,mm-1,day);
+  Object.keys(cache.leaves).forEach(name=>{(cache.leaves[name]||[]).forEach(lv=>{if(lv.from&&lv.to){const a=lv.from.split('-').map(Number);const b=lv.to.split('-').map(Number);const t=new Date(a[0],a[1]-1,a[2]);const en=new Date(b[0],b[1]-1,b[2]);if(cur>=t&&cur<=en)q++;}});});
+  return {e,l,f,r,q};
+}
+async function renderDailyCard(){
+  const el=document.getElementById('dtCard');if(!el)return;
+  const wd=['一','二','三','四','五','六','日'];
+  const v=admState.dtView;
+  const today=todayStr();
+  let m,day,label;
+  if(v==='today'){const p=today.split('-').map(Number);m=p[0]+'-'+String(p[1]).padStart(2,'0');day=p[2];label='系统今日 · '+today+'（周'+wkName(new Date(p[0],p[1]-1,p[2]))+'）';}
+  else if(v==='date'){const p=admState.dtSel.split('-').map(Number);m=p[0]+'-'+String(p[1]).padStart(2,'0');day=p[2];label=admState.dtSel+'（周'+wkName(new Date(p[0],p[1]-1,p[2]))+'）';}
+  else{m=admState.month;label=monthLabel(m)+' 每日排班汇总';}
+  let cache;
+  try{cache=await getMonthData(m);}catch(e){el.innerHTML='<div class="mcard-head"><div class="mname">每日排班合计</div></div><div style="padding:14px;color:var(--err)">加载失败：'+e+'</div>';return;}
+  const tb='<div class="dt-toggle">'
+    +'<button class="'+(v==='today'?'on':'')+'" onclick="setDtView(\'today\')">今日</button>'
+    +'<button class="'+(v==='date'?'on':'')+'" onclick="setDtView(\'date\')">选择日期</button>'
+    +'<button class="'+(v==='month'?'on':'')+'" onclick="setDtView(\'month\')">月历</button>'
+    +'</div>';
+  let body='';
+  if(v==='month'){
+    const n=daysIn(m);const off=firstOffset(m);let cells='';
+    for(let i=0;i<off;i++)cells+='<span class="mcell empty"></span>';
+    for(let d=1;d<=n;d++){const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';const t=dayTotals(cache,m,d);const q=t.q>0?'<span class="dtq">请'+t.q+'</span>':'';cells+='<span class="mcell dtcell'+wkcls+'" onclick="setDtSelFromCell('+d+')"><b>'+d+'</b><div class="dtsum"><span class="dte">早'+t.e+'</span><span class="dtl">晚'+t.l+'</span><span class="dtf">通'+t.f+'</span><span class="dtr">休'+t.r+'</span>'+q+'</div></span>';}
+    body='<div class="mcal">'+cells+'</div>';
+  }else{
+    const t=dayTotals(cache,m,day);
+    body='<div class="dtsingle">'
+      +'<div class="dts-row"><span class="dte">早班 <b>'+t.e+'</b> 人</span><span class="dtl">晚班 <b>'+t.l+'</b> 人</span></div>'
+      +'<div class="dts-row"><span class="dtf">通班 <b>'+t.f+'</b> 人</span><span class="dtr">休息 <b>'+t.r+'</b> 人</span></div>'
+      +(t.q>0?'<div class="dts-row"><span class="dtq big">请假 <b>'+t.q+'</b> 人</span></div>':'')
+      +'</div>';
+    if(v==='date')body='<div class="dt-datepick"><input type="date" value="'+admState.dtSel+'" max="'+curMonth(new Date())+'-12" min="'+curMonth(new Date())+'-01" onchange="onDtDateChange(this.value)"></div>'+body;
+  }
+  el.innerHTML='<div class="mcard-head"><div class="mname">每日排班合计</div>'+tb+'</div><div class="dt-label">'+label+'</div>'+body;
+}
+function setDtView(v){admState.dtView=v;if(v==='date'&&!admState.dtSel)admState.dtSel=todayStr();renderDailyCard();}
+function onDtDateChange(val){if(!val)return;admState.dtSel=val;renderDailyCard();}
+function setDtSelFromCell(d){const [y,mo]=admState.month.split('-').map(Number);admState.dtSel=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');admState.dtView='date';renderDailyCard();}
+
 function renderAdmMobile(){
+
   const names=CONFIG.employees.map(e=>e.name);
   const n=daysIn(admState.month);
   const off=firstOffset(admState.month);
