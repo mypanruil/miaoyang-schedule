@@ -218,6 +218,7 @@
       <div class="tabs">
         <button class="tab active" id="tabSum" onclick="switchTab('sum')">排班汇总</button>
         <button class="tab" id="tabStats" onclick="switchTab('stats')">统计分析</button>
+        <button class="tab" id="tabLeaves" onclick="switchTab('leaves')">请假管理</button>
       </div>
       <div id="cardSum" class="card">
         <div class="card-title">管理员汇总 <span class="meta" id="admStat"></span></div>
@@ -277,6 +278,15 @@
           <button class="ok" onclick="exportStatsCSV()">导出 CSV</button>
           <button onclick="exportStatsPNG()">导出图表 PNG</button>
           <button onclick="exportStatsPDF()">导出 PDF 报告</button>
+        </div>
+      </div>
+
+      <div id="cardLeaves" class="card hidden">
+        <div class="card-title">请假管理 <span class="meta" id="leavesMeta"></span></div>
+        <div id="leavesMsg" class="msg"></div>
+        <div class="agrid">
+          <table><thead><tr><th>员工</th><th>开始</th><th>结束</th><th>天数</th><th>事由</th><th>操作</th></tr></thead>
+          <tbody id="leavesTable"></tbody></table>
         </div>
       </div>
 
@@ -573,9 +583,12 @@ const chartMap={};
 function switchTab(t){
   document.getElementById('tabSum').classList.toggle('active',t==='sum');
   document.getElementById('tabStats').classList.toggle('active',t==='stats');
+  document.getElementById('tabLeaves').classList.toggle('active',t==='leaves');
   document.getElementById('cardSum').classList.toggle('hidden',t!=='sum');
   document.getElementById('cardStats').classList.toggle('hidden',t!=='stats');
+  document.getElementById('cardLeaves').classList.toggle('hidden',t!=='leaves');
   if(t==='stats')renderStats();
+  if(t==='leaves')renderAdminLeaves();
 }
 async function renderStats(){
   if(!admState.token)return;
@@ -685,6 +698,37 @@ function exportStatsPDF(){
   '</div><h2>明细表</h2><table><thead><tr><th>员工</th><th>早班</th><th>晚班</th><th>休息</th><th>是否超上限</th><th>已提交</th></tr></thead><tbody>'+tr+'</tbody></table>'+
   '<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt></body></html>');
   w.document.close();
+}
+
+/* ---------- 请假管理 ---------- */
+async function renderAdminLeaves(){
+  if(!admState.token)return;
+  try{
+    const d=await api('/api/admin/leaves?token='+admState.token+'&month='+admState.month);
+    const leaves=d.leaves||{};
+    const all=[];
+    Object.keys(leaves).forEach(emp=>{leaves[emp].forEach((l,i)=>{all.push({emp,idx:i,...l});});});
+    document.getElementById('leavesMeta').textContent=monthLabel(admState.month)+(all.length?' ｜ 共 '+all.length+' 条':' ｜ 暂无请假');
+    const tb=document.getElementById('leavesTable');
+    if(!all.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--mut);padding:20px">本月暂无请假记录</td></tr>';return;}
+    tb.innerHTML=all.map(r=>{
+      const days=Array.isArray(r.days)?r.days.length:(r.days||0);
+      return `<tr>
+        <td style="font-weight:700">${escHtml(r.emp)}</td>
+        <td>${r.from||'-'}</td><td>${r.to||'-'}</td>
+        <td>${days} 天</td><td>${escHtml(r.reason||'')}</td>
+        <td><button class="errbtn" style="font-size:12px;padding:4px 10px" onclick="deleteLeave('${escAttr(r.emp)}',${r.idx})">删除</button></td>
+      </tr>`;
+    }).join('');
+  }catch(e){showMsg('leavesMsg',e,'err');}
+}
+async function deleteLeave(emp,idx){
+  if(!confirm('确定删除 '+emp+' 的这条请假记录？员工端会立即恢复原排班显示。'))return;
+  try{
+    await api('/api/admin/delete-leave',{method:'POST',body:JSON.stringify({token:admState.token,emp,index:idx})});
+    showMsg('leavesMsg','已删除','ok');
+    renderAdminLeaves();
+  }catch(e){showMsg('leavesMsg',e,'err');}
 }
 
 window.addEventListener('resize',()=>{const adm=document.getElementById('admMain');if(admState.token&&adm&&!adm.classList.contains('hidden'))renderAdmGrid();});
