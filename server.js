@@ -41,15 +41,14 @@ function loadData() {
 function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8'); }
 
 let DATA = loadData();
-// 安全：管理员密码不再硬编码默认值。优先级：环境变量 ADMIN_PASSWORD > 已保存密码 > 首次随机生成
+// 管理员密码：环境变量 ADMIN_PASSWORD 优先 > 已保存密码 > 默认 admin
 if (process.env.ADMIN_PASSWORD) {
   DATA.config.adminPassword = process.env.ADMIN_PASSWORD;
 }
-if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = '';
+if (DATA.config.adminPassword === 'admin123') DATA.config.adminPassword = 'admin'; // 历史弱密码清理
 if (!DATA.config.adminPassword) {
-  const rand = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
-  DATA.config.adminPassword = rand;
-  console.log('[安全] 未配置管理员密码，已自动生成随机密码: ' + rand + ' （可在 Cloud Studio 环境变量 ADMIN_PASSWORD 指定固定强密码）');
+  DATA.config.adminPassword = 'admin';
+  console.log('[安全] 管理员默认密码: admin（建议登录后台后通过"修改密码"自行更改，或通过环境变量 ADMIN_PASSWORD 设置）');
 }
 saveData(DATA);
 const adminTokens = new Set(DATA.adminTokens);
@@ -547,5 +546,5 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': 
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('排班系统已启动: http://localhost:' + PORT);
-  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD ? '(环境变量 ADMIN_PASSWORD)' : DATA.config.adminPassword) + ' （建议通过环境变量 ADMIN_PASSWORD 指定固定强密码）');
+  console.log('[权限] 员工端: / ｜ 管理员后台: /admin.html ｜ 管理员密码: ' + (process.env.ADMIN_PASSWORD ? '(环境变量 ADMIN_PASSWORD)' : DATA.config.adminPassword) + ' （建议在后台修改密码处自行更改）');
 });
