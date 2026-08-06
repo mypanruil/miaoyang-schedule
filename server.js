@@ -259,11 +259,22 @@ const server = http.createServer((req, res) => {
     const month = url.searchParams.get('month');
     if (!month) return sendJson(res, 400, { error: '缺少月份' });
     const sch = DATA.schedules[month] || {};
+    // 加载请假数据（供前端排班总览表格渲染红色标记）
+    let leaves = {};
+    for (const emp of Object.keys(DATA.leaves || {})) {
+      const recs = DATA.leaves[emp].filter(l => {
+        if (!l.from) return false;
+        const [fy, fm] = l.from.split('-').map(Number);
+        return fy === parseInt(month.split('-')[0]) && fm === parseInt(month.split('-')[1]);
+      });
+      if (recs.length) leaves[emp] = recs;
+    }
     return sendJson(res, 200, {
       month,
       days: daysInMonth(month),
       employees: DATA.config.employees.map(e => e.name),
-      schedules: sch
+      schedules: sch,
+      leaves
     });
   }
 
