@@ -485,7 +485,6 @@ async function empSubmit(){
   const pin=document.getElementById('empPin').value||'';
   if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
   const _cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
-  if(_cfg&&_cfg.hasPin&&!pin){showMsg('empMsg','请输入 PIN 码后再提交排班','err');return;}
   try{
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     updateSubmitUI();
@@ -519,7 +518,6 @@ async function doLeave(){
   const reason=document.getElementById('leaveReason').value.trim();
   if(!from||!to){showMsg('leaveFormMsg','请选择开始和结束日期','err');return;}
   const _cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
-  if(_cfg&&_cfg.hasPin&&!pin){showMsg('leaveFormMsg','请输入 PIN 码后再提交请假','err');return;}
   try{
     const r=await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
     closeLeaveModal();
