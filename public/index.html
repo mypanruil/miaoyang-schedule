@@ -292,6 +292,14 @@
   </div>
 </div>
 
+<div id="okModal" class="overlay" style="display:none;z-index:70" onclick="if(event.target===this)closeOkModal()">
+  <div class="card" style="max-width:360px;text-align:center">
+    <div class="card-title" style="color:var(--ok)">提交成功</div>
+    <p id="okModalMsg" style="font-size:14px;margin:10px 0 16px;color:var(--mut)"></p>
+    <button class="ok" id="okModalOk" onclick="closeOkModal()">好的</button>
+  </div>
+</div>
+
 <script>
 const API='';
 let CONFIG=null;
@@ -454,6 +462,13 @@ function closePinModal(){
   document.getElementById('pinModal').style.display='none';
   pinPending=null;
 }
+function showOkModal(msg){
+  const m=document.getElementById('okModalMsg');
+  m.textContent=msg||'提交成功';
+  document.getElementById('okModal').style.display='flex';
+  setTimeout(()=>{const b=document.getElementById('okModalOk');if(b)b.focus();},30);
+}
+function closeOkModal(){document.getElementById('okModal').style.display='none';}
 function confirmPinModal(){
   const pin=document.getElementById('pinModalInput').value||'';
   if(!pin){const m=document.getElementById('pinModalMsg');m.className='msg err';m.textContent='请输入 PIN 码';return;}
@@ -474,7 +489,7 @@ async function empSubmit(){
   try{
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     updateSubmitUI();
-    showMsg('empMsg','提交成功！随时可以修改，重新提交即覆盖','ok');
+    showOkModal('排班已提交成功！随时可以修改，重新提交即覆盖');
     loadAll();
   }catch(e){
     if(e && /PIN/.test(e.message||String(e))){ showPinModal('submit'); return; }
@@ -507,8 +522,8 @@ async function doLeave(){
   if(_cfg&&_cfg.hasPin&&!pin){showMsg('leaveFormMsg','请输入 PIN 码后再提交请假','err');return;}
   try{
     const r=await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
-    showMsg('leaveFormMsg','请假申请已提交','ok');
-    setTimeout(closeLeaveModal,1200);
+    closeLeaveModal();
+    showOkModal('请假申请已提交成功');
     // 刷新请假记录
     if(!empExpired){empLoad();}
   }catch(e){
