@@ -852,7 +852,7 @@ async function renderAdminLeaves(){
   }catch(e){showMsg('leavesMsg',e,'err');}
 }
 async function deleteLeave(emp,idx){
-  if(!confirm('确定删除 '+emp+' 的这条请假记录？员工端会立即恢复原排班显示。'))return;
+  if(!confirm('确定删除 '+dispEmp(emp)+' 的这条请假记录？员工端会立即恢复原排班显示。'))return;
   try{
     await api('/api/admin/delete-leave',{method:'POST',body:JSON.stringify({token:admState.token,emp,index:idx})});
     showMsg('leavesMsg','已删除','ok');
