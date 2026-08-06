@@ -268,6 +268,26 @@ const server = http.createServer((req, res) => {
     });
   }
 
+  // ---- 管理员：修改管理员密码 ----
+  if (p === '/api/admin/change-password' && req.method === 'POST') {
+    return readBody(req, (err, b) => {
+      if (err) return sendJson(res, 400, { error: '数据格式错误' });
+      const token = (b && b.token) || req.headers['x-admin-token'];
+      if (!validToken(token)) return sendJson(res, 401, { error: '未授权' });
+      const oldPw = (b && b.oldPassword || '').trim();
+      const newPw = (b && b.newPassword || '').trim();
+      if (!oldPw || !newPw) return sendJson(res, 400, { error: '请输入旧密码和新密码' });
+      if (oldPw !== DATA.config.adminPassword) return sendJson(res, 403, { error: '旧密码错误' });
+      if (newPw.length < 6) return sendJson(res, 400, { error: '新密码至少 6 位' });
+      DATA.config.adminPassword = newPw;
+      // 修改密码后清空所有 token，强制重新登录
+      DATA.adminTokens = [];
+      adminTokens.clear();
+      saveData(DATA);
+      return sendJson(res, 200, { ok: true, msg: '密码修改成功，请重新登录' });
+    });
+  }
+
   // ---- 管理员：导出打印用 HTML（前端再另存为 PDF） ----
   if (p === '/api/admin/export' && req.method === 'GET') {
     const token = url.searchParams.get('token') || req.headers['x-admin-token'];
