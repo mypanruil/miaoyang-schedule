@@ -478,19 +478,26 @@ function closeOkModal(){document.getElementById('okModal').style.display='none';
 function confirmPinModal(){
   const pin=document.getElementById('pinModalInput').value||'';
   if(!pin){const m=document.getElementById('pinModalMsg');m.className='msg err';m.textContent='请输入 PIN 码';return;}
-  // 写入主 PIN 输入框：之后所有提交/请假都自动用正确 PIN，不再弹窗
-  document.getElementById('empPin').value=pin;
+  // 先保存待重试动作，再关弹窗（closePinModal 会把 pinPending 置空）
+  const action=pinPending;
   closePinModal();
-  if(pinPending==='submit') empSubmit();
-  else if(pinPending==='leave') doLeave();
+  const emp=document.getElementById('empSel').value;
+  if(action==='submit') empSubmitCore(emp, pin);
+  else if(action==='leave') doLeaveCore(emp, pin);
 }
 
 async function empSubmit(){
   if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   const emp=document.getElementById('empSel').value;
-  const pin=document.getElementById('empPin').value||'';
   if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
-  const _cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
+  const cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
+  // 有 PIN 的员工：每次提交都强制弹 PIN 验证窗
+  if(cfg && cfg.hasPin){ showPinModal('submit'); return; }
+  // 无 PIN 员工：用主 PIN 框的值直接提交
+  const pin=document.getElementById('empPin').value||'';
+  await empSubmitCore(emp, pin);
+}
+async function empSubmitCore(emp, pin){
   try{
     await api('/api/submit',{method:'POST',body:JSON.stringify({emp,pin,month:empState.month,schedule:empState.schedule})});
     updateSubmitUI();
@@ -519,14 +526,22 @@ function openLeaveModal(){
 function closeLeaveModal(){document.getElementById('leaveOverlay').style.display='none';}
 async function doLeave(){
   const emp=document.getElementById('empSel').value;
+  if(!emp){showMsg('empMsg','请先选择姓名','err');return;}
+  const from=document.getElementById('leaveFrom').value;
+  const to=document.getElementById('leaveTo').value;
+  if(!from||!to){showMsg('leaveFormMsg','请选择开始和结束日期','err');return;}
+  const cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
+  // 有 PIN 的员工：每次提交都强制弹 PIN 验证窗
+  if(cfg && cfg.hasPin){ showPinModal('leave'); return; }
   const pin=document.getElementById('empPin').value||'';
+  await doLeaveCore(emp, pin);
+}
+async function doLeaveCore(emp, pin){
   const from=document.getElementById('leaveFrom').value;
   const to=document.getElementById('leaveTo').value;
   const reason=document.getElementById('leaveReason').value.trim();
-  if(!from||!to){showMsg('leaveFormMsg','请选择开始和结束日期','err');return;}
-  const _cfg=(CONFIG.employees||[]).find(e=>e.name===emp);
   try{
-    const r=await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
+    await api('/api/leave',{method:'POST',body:JSON.stringify({emp,pin,from,to,reason})});
     closeLeaveModal();
     showOkModal('请假申请已提交成功');
     syncAllMonthTo(empState.month);
