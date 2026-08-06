@@ -92,6 +92,12 @@
   th.wkend,td.wkend{background:#fff7ed}
   th.wkend .wk,td.wkend .wk{color:var(--late);opacity:1}
   td.wkend{box-shadow:inset -3px 0 0 #fdba74}
+  /* 每日合计行 */
+  tr.total-row td{background:#f0f9ff;border-color:#bae6fd}
+  tr.total-row td.emp{background:#e0f2fe;color:#0369a1;font-weight:800}
+  .total-cell .dte{color:var(--early)} .total-cell .dtl{color:var(--late)} .total-cell .dtf{color:var(--full)} .total-cell .dtr{color:var(--rest)}
+  .total-cell .dtq{color:#fff;background:var(--leavebg);padding:0 4px;border-radius:3px;font-size:10px;font-weight:700}
+  #admGrid table td.leave .gcell{font-weight:700}
   .summary-bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center;background:linear-gradient(120deg,#eff6ff,#f8fafc);border:1px solid var(--line);border-radius:12px;padding:12px 18px;margin-bottom:14px;font-size:13px}
   .summary-bar b{font-size:16px}
   .summary-bar .sb-item{display:flex;flex-direction:column;line-height:1.35}
@@ -123,7 +129,6 @@
   .mbad{color:var(--err);font-weight:600;font-size:12px}
   .mcal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 10px;font-size:11px;color:var(--mut);text-align:center;font-weight:700}
   .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-  .acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:8px}
   .mcell{aspect-ratio:1/1;border-radius:7px;background:#f8fafc;border:1px solid #eef0f3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);cursor:pointer;padding:2px;line-height:1}
   .mcell.empty{background:transparent;border:none;cursor:default}
   .mcell b{font-weight:700;font-size:11px}
@@ -135,18 +140,6 @@
   .mcell.wkend{background:#fff7ed;border-color:#fed7aa;box-shadow:inset -3px 0 0 #fdba74}
   .mcell.leave{background:var(--leavebg);color:#fff;border-color:var(--leave)}
   .mcell.leave i{color:#fff}
-
-  /* 桌面端每日合计卡片 */
-  .dt-card{grid-column:1 / -1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:12px;margin-bottom:2px}
-  .dt-card .mname{color:#0369a1}
-  .dtcell{aspect-ratio:auto;min-height:62px;padding:3px 1px;background:#f8fafc;border-color:#e2e8f0;cursor:default}
-  .dtcell b{font-size:12px;color:#0f172a}
-  .dtcell i{display:inline;font-size:9px;font-weight:700;padding:0 2px;border-radius:3px;line-height:1.3;margin:0 1px 1px}
-  .dtcell .dte{color:var(--early);background:#eff6ff}
-  .dtcell .dtl{color:var(--late);background:#fff7ed}
-  .dtcell .dtf{color:var(--full);background:#f5f3ff}
-  .dtcell .dtr{color:var(--rest);background:#f3f4f6}
-  .dtcell .dtq{color:#fff;background:var(--leavebg)}
 
   /* 标签页 */
   .tabs{display:flex;gap:8px;margin-bottom:14px}
@@ -458,7 +451,6 @@ function renderAdmGrid(){
   const n=daysIn(admState.month);
   const off=firstOffset(admState.month);
   const wd=['一','二','三','四','五','六','日'];
-  const head='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
   // 计算每日排班合计 + 请假合计
   const dt={};for(let d=1;d<=n;d++)dt[d]={e:0,l:0,f:0,r:0,q:0};
   names.forEach(name=>{
@@ -467,42 +459,30 @@ function renderAdmGrid(){
     const ld=admLeaveDays(name);
     ld.forEach(d=>{if(d>=1&&d<=n)dt[d].q++;});
   });
-  // 每日合计卡片
-  let dtCells='';
-  for(let i=0;i<off;i++)dtCells+='<span class="mcell empty"></span>';
-  for(let d=1;d<=n;d++){const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';const t=dt[d];dtCells+=`<span class="mcell dtcell${wkcls}"><b>${d}</b><i class="dte">早${t.e}</i><i class="dtl">晚${t.l}</i><i class="dtf">通${t.f}</i><i class="dtr">休${t.r}</i>${t.q>0?'<i class="dtq">请'+t.q+'</i>':''}</span>`;}
-  let cards=`<div class="dt-card">
-    <div class="mcard-head"><div class="mname">每日排班合计</div></div>
-    ${head}
-    <div class="mcal">${dtCells}</div>
-  </div>`;
+  // 表头
+  let h='<table><thead><tr><th class="emp">员工 / 日期</th>';
+  for(let d=1;d<=n;d++){const w=(off+d-1)%7;const wk=w===5||w===6?' wkend':'';h+=`<th class="${wk}">${d}<span class="wk">${wd[w]}</span></th>`;}
+  h+='</tr></thead><tbody>';
+  // 每位员工一行
   names.forEach(name=>{
     const s=admState.draft[name]||{};
     const submitted=Object.keys(s).length>0;
     const c=counts(s);
     const over=c.r>CONFIG.restDaysPerMonth;
-    const bad=over;
-    let cells='';
     const ld=admLeaveDays(name);
-    for(let i=0;i<off;i++)cells+='<span class="mcell empty"></span>';
-    for(let d=1;d<=n;d++){
-      const v=s[d]||'';const t=v==='early'?'早':v==='late'?'晚':v==='full'?'通':v==='rest'?'休':'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';
-      if(ld.has(d)){cells+='<span class="mcell leave" onclick="admLeaveClick(\''+escAttr(name)+'\','+d+')"><b>'+d+'</b><i>请</i></span>';}
-      else{cells+='<span class="mcell '+v+wkcls+'" onclick="admSet(\''+escAttr(name)+'\','+d+')"><b>'+d+'</b><i>'+t+'</i></span>';}
-    }
-    let tag=bad?' <span class="mbad">休'+c.r+'天超'+CONFIG.restDaysPerMonth+'</span>':(submitted?'':' <span class="mbad" style="color:var(--mut)">未提交</span>');
-    cards+=`<div class="mcard${bad?' bad':''}">
-      <div class="mcard-head">
-        <div class="mname">${escHtml(name)}${tag}</div>
-        <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
-      </div>
-      <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es full">通${c.f}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
-      ${head}
-      <div class="mcal">${cells}</div>
-    </div>`;
+    const stats='<div class="emp-stats"><span class="es early">早'+c.e+'</span><span class="es late">晚'+c.l+'</span><span class="es full">通'+c.f+'</span><span class="es rest'+(over?' over':'')+'">休'+c.r+'</span></div>';
+    const sub=submitted?'':`<div class="notsub">未提交</div>`;
+    h+=`<tr><td class="emp${over?' bad':''}"><div class="empname">${escHtml(name)}</div>${stats}${sub}<button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button></td>`;
+    for(let d=1;d<=n;d++){const v=s[d]||'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';if(ld.has(d)){h+=`<td class="${wkcls} leave" onclick="admLeaveClick('${escAttr(name)}',${d})"><div class="gcell">请</div></td>`;}else{h+=`<td class="${wkcls}" onclick="admSet('${escAttr(name)}',${d})">${gcellHtml(v)}</td>`;}}
+    h+='</tr>';
   });
-  document.getElementById('admGrid').innerHTML='<div class="acards">'+cards+'</div>';
+  // 每日合计行
+  h+='<tr class="total-row"><td class="emp total-emp">每日合计</td>';
+  for(let d=1;d<=n;d++){const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';const t=dt[d];h+=`<td class="total-cell${wkcls}"><span class="dte">早${t.e}</span> <span class="dtl">晚${t.l}</span><br><span class="dtf">通${t.f}</span> <span class="dtr">休${t.r}</span>${t.q>0?'<br><span class="dtq">请'+t.q+'</span>':''}</td>`;}
+  h+='</tr></tbody></table>';
+  document.getElementById('admGrid').innerHTML='<div class="agrid">'+h+'</div>';
 }
+
 function renderAdmMobile(){
   const names=CONFIG.employees.map(e=>e.name);
   const n=daysIn(admState.month);
