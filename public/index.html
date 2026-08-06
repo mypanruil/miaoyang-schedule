@@ -92,6 +92,7 @@
   .all-table td.late{background:var(--latebg);color:var(--late);font-weight:600}
   .all-table td.full{background:var(--fullbg);color:var(--full);font-weight:600}
   .all-table td.rest{background:var(--restbg);color:var(--rest);font-weight:600}
+  .all-table td.leave{background:#fef2f2;color:#dc2626;font-weight:600}
   .all-table .wd-h{font-size:10px;color:var(--mut);font-weight:400}
   .all-table tbody tr:nth-child(even) td.sticky{background:#fafafa}
   .all-table tbody tr:nth-child(even){background:#fafafa}
@@ -496,11 +497,26 @@ function renderAllTable(s){
     const w=wd[(dt.getDay()+6)%7];
     h+='<th>'+d+'<br><span class="wd-h">'+w+'</span></th>';
   }
+  // 预计算每人请假日期集
+  const leaveMap={};
+  const [ly,lm]=s.month.split('-').map(Number);
+  if(s.leaves) Object.keys(s.leaves).forEach(emp=>{
+    const set=new Set();
+    s.leaves[emp].forEach(l=>{
+      const fs=new Date(l.from),ts=new Date(l.to);
+      for(let dt=new Date(fs);dt<=ts;dt.setDate(dt.getDate()+1)){
+        if(dt.getFullYear()===ly&&dt.getMonth()+1===lm) set.add(dt.getDate());
+      }
+    });
+    leaveMap[emp]=set;
+  });
   h+='</tr></thead><tbody>';
   s.employees.forEach(name=>{
     const sc=s.schedules[name]||{};
+    const lv=leaveMap[name];
     h+='<tr><td class="sticky">'+escHtml(name)+'</td>';
     for(let d=1;d<=n;d++){
+      if(lv&&lv.has(d)){h+='<td class="leave">请</td>';continue;}
       const v=sc[String(d)]||'';
       const cls=v==='rest'?'rest':v==='early'?'early':v==='late'?'late':v==='full'?'full':'';
       const txt=v==='rest'?'休':v==='early'?'早':v==='late'?'晚':v==='full'?'通':'';
