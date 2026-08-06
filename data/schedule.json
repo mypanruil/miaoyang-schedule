@@ -1,0 +1,83 @@
+{
+  "config": {
+    "configVersion": 2,
+    "company": "徐州妙漾医疗美容有限公司",
+    "earlyShift": "09:00-17:00",
+    "lateShift": "10:00-19:00",
+    "fullShift": "09:00-19:00",
+    "restDaysPerMonth": 5,
+    "employees": [
+      {
+        "name": "员工01",
+        "pin": ""
+      },
+      {
+        "name": "员工02",
+        "pin": ""
+      },
+      {
+        "name": "员工03",
+        "pin": ""
+      },
+      {
+        "name": "员工04",
+        "pin": ""
+      },
+      {
+        "name": "员工05",
+        "pin": ""
+      },
+      {
+        "name": "员工06",
+        "pin": ""
+      },
+      {
+        "name": "员工07",
+        "pin": ""
+      },
+      {
+        "name": "员工08",
+        "pin": ""
+      },
+      {
+        "name": "员工09",
+        "pin": ""
+      },
+      {
+        "name": "员工10",
+        "pin": ""
+      },
+      {
+        "name": "员工11",
+        "pin": ""
+      },
+      {
+        "name": "员工12",
+        "pin": ""
+      }
+    ],
+    "adminPassword": "miaoyang2026"
+  },
+  "schedules": {
+    "2026-08": {
+      "员工01": {}
+    }
+  },
+  "lastSubmitted": {
+    "员工01": "2026-08-06T17:54:13.162Z"
+  },
+  "adminTokens": [
+    "dcbcdf1ce61ac2ca3c6635d5d905544100053b81c724c413",
+    "5ce4cbfeef767bd0e3adeb52a0c8909e1ca152b66de8743c"
+  ],
+  "leaves": {
+    "员工01": [
+      {
+        "from": "2026-08-17",
+        "to": "2026-08-23",
+        "reason": "",
+        "createdAt": "2026-08-06T17:54:10.023Z"
+      }
+    ]
+  }
+}
