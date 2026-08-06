@@ -462,14 +462,14 @@ function renderAdmMobile(){
     for(let i=0;i<off;i++)cells+='<span class="mcell empty"></span>';
     for(let d=1;d<=n;d++){const v=s[d]||'';const t=v==='early'?'早':v==='late'?'晚':v==='full'?'通':v==='rest'?'休':'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';cells+='<span class="mcell '+v+wkcls+'" onclick="admSet(\''+escAttr(name)+'\','+d+')"><b>'+d+'</b><i>'+t+'</i></span>';}
     let tag=bad?' <span class="mbad">休'+c.r+'天超'+CONFIG.restDaysPerMonth+'</span>':(submitted?'':' <span class="mbad" style="color:var(--mut)">未提交</span>');
-    h+='<div class="mcard'+(bad?' bad':'')+'">
+    h+=`<div class="mcard${bad?' bad':''}">
       <div class="mcard-head">
-        <div class="mname">'+escHtml(name)+tag+'</div>
-        <button class="clr" data-emp="'+escAttr(name)+'" onclick="openClear(this)">清除</button>
+        <div class="mname">${escHtml(name)}${tag}</div>
+        <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
       </div>
-      <div class="emp-stats"><span class="es early">早'+c.e+'</span><span class="es late">晚'+c.l+'</span><span class="es full">通'+c.f+'</span><span class="es rest'+(over?' over':'')+'">休'+c.r+'</span></div>
-      <div class="mcal">'+cells+'</div>
-    </div>';
+      <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es full">通${c.f}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
+      <div class="mcal">${cells}</div>
+    </div>`;
   });
   document.getElementById('admGrid').innerHTML=h;
 }
