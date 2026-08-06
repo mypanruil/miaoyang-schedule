@@ -561,7 +561,8 @@ function renderAdmMobile(){
   const n=daysIn(admState.month);
   const off=firstOffset(admState.month);
   const wd=['一','二','三','四','五','六','日'];
-  let h='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
+  let h='<div class="mcard dt-card" id="dtCard"></div>';
+  h+='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
   names.forEach(name=>{
     const s=admState.draft[name]||{};
     const submitted=Object.keys(s).length>0;
@@ -587,6 +588,7 @@ function renderAdmMobile(){
     </div>`;
   });
   document.getElementById('admGrid').innerHTML=h;
+  renderDailyCard();
 }
 function admSet(name,d){admState.draft[name]=admState.draft[name]||{};admState.draft[name][d]=cycle(admState.draft[name][d]||'');renderAdmGrid();}
 function cycle(v){return v==='early'?'late':v==='late'?'full':v==='full'?'rest':v==='rest'?'early':'';}
