@@ -232,7 +232,7 @@
       <div class="card-title">
         本月全员排班总览
         <span class="meta" id="allMeta">管理员汇总后此处实时更新</span>
-        <span class="sync-tag" id="allSync" title="每 8 秒自动同步"><span class="dot"></span>实时同步中</span>
+        <span class="sync-tag" id="allSync" title="每 0.1 秒自动同步"><span class="dot"></span>实时同步中</span>
       </div>
       <div class="row">
         <div class="field sm">
@@ -338,7 +338,7 @@ async function loadConfig(){
   document.getElementById('empSubmit').disabled=false;
   loadAll();
   // 总览自动轮询：管理员清除/其他员工提交后实时同步
-  if(!window.__allTimer){window.__allTimer=setInterval(loadAll,8000);}
+  if(!window.__allTimer){window.__allTimer=setInterval(loadAll,100);}
 }
 function updatePinBox(){
   const sel=document.getElementById('empSel');
@@ -564,6 +564,8 @@ function syncAllMonthTo(m){
 }
 async function loadAll(){
   if(!CONFIG){return;}
+  if(window.__allLoading){return;} // 上一次请求未返回则跳过，避免0.1s高频轮询下请求堆积
+  window.__allLoading=true;
   const month=getAllMonth();
   try{
     const s=await api('/api/summary?month='+month);
@@ -575,6 +577,7 @@ async function loadAll(){
     const st=document.getElementById('allSync');
     if(st)st.title='最后同步 '+new Date().toLocaleTimeString();
   }catch(e){showMsg('allMsg',e,'err');}
+  finally{window.__allLoading=false;}
 }
 function renderAllTable(s){
   if(!s.employees||!s.employees.length){document.getElementById('allCal').innerHTML='<div class="hint">暂无排班数据</div>';return;}
