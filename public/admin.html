@@ -123,6 +123,7 @@
   .mbad{color:var(--err);font-weight:600;font-size:12px}
   .mcal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 10px;font-size:11px;color:var(--mut);text-align:center;font-weight:700}
   .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:8px}
   .mcell{aspect-ratio:1/1;border-radius:7px;background:#f8fafc;border:1px solid #eef0f3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--mut);cursor:pointer;padding:2px;line-height:1}
   .mcell.empty{background:transparent;border:none;cursor:default}
   .mcell b{font-weight:700;font-size:11px}
@@ -445,27 +446,34 @@ function renderAdmGrid(){
   const n=daysIn(admState.month);
   const off=firstOffset(admState.month);
   const wd=['一','二','三','四','五','六','日'];
-  let h='<table><thead><tr><th class="emp">员工 \\ 日期</th>';
-  for(let d=1;d<=n;d++){const w=(off+d-1)%7;const wk=w===5||w===6?' wkend':'';h+=`<th class="${wk}">${d}<span class="wk">${wd[w]}</span></th>`;}
-  h+='</tr></thead><tbody>';
+  const head='<div class="mcal-head">'+wd.map(w=>`<span>${w}</span>`).join('')+'</div>';
+  let cards='';
   names.forEach(name=>{
     const s=admState.draft[name]||{};
     const submitted=Object.keys(s).length>0;
     const c=counts(s);
     const over=c.r>CONFIG.restDaysPerMonth;
-    const stats='<div class="emp-stats"><span class="es early">早'+c.e+'</span><span class="es late">晚'+c.l+'</span><span class="es full">通'+c.f+'</span><span class="es rest'+(over?' over':'')+'">休'+c.r+'</span></div>';
-    const sub=submitted?'':`<div class="notsub">未提交</div>`;
+    const bad=over;
+    let cells='';
     const ld=admLeaveDays(name);
-    h+=`<tr><td class="emp${over?' bad':''}"><div class="empname">${escHtml(name)}</div>${stats}${sub}<button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button></td>`;
+    for(let i=0;i<off;i++)cells+='<span class="mcell empty"></span>';
     for(let d=1;d<=n;d++){
-      const v=s[d]||'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';
-      if(ld.has(d)){h+=`<td class="${wkcls} leave" onclick="admLeaveClick('${escAttr(name)}',${d})"><div class="gcell leave-g">请</div></td>`;}
-      else{h+=`<td class="${wkcls}" onclick="admSet('${escAttr(name)}',${d})">${gcellHtml(v)}</td>`;}
+      const v=s[d]||'';const t=v==='early'?'早':v==='late'?'晚':v==='full'?'通':v==='rest'?'休':'';const wk=(off+d-1)%7;const wkcls=(wk===5||wk===6)?' wkend':'';
+      if(ld.has(d)){cells+='<span class="mcell leave" onclick="admLeaveClick(\''+escAttr(name)+'\','+d+')"><b>'+d+'</b><i>请</i></span>';}
+      else{cells+='<span class="mcell '+v+wkcls+'" onclick="admSet(\''+escAttr(name)+'\','+d+')"><b>'+d+'</b><i>'+t+'</i></span>';}
     }
-    h+='</tr>';
+    let tag=bad?' <span class="mbad">休'+c.r+'天超'+CONFIG.restDaysPerMonth+'</span>':(submitted?'':' <span class="mbad" style="color:var(--mut)">未提交</span>');
+    cards+=`<div class="mcard${bad?' bad':''}">
+      <div class="mcard-head">
+        <div class="mname">${escHtml(name)}${tag}</div>
+        <button class="clr" data-emp="${escAttr(name)}" onclick="openClear(this)">清除</button>
+      </div>
+      <div class="emp-stats"><span class="es early">早${c.e}</span><span class="es late">晚${c.l}</span><span class="es full">通${c.f}</span><span class="es rest${over?' over':''}">休${c.r}</span></div>
+      ${head}
+      <div class="mcal">${cells}</div>
+    </div>`;
   });
-  h+='</tbody></table>';
-  document.getElementById('admGrid').innerHTML=h;
+  document.getElementById('admGrid').innerHTML='<div class="acards">'+cards+'</div>';
 }
 function renderAdmMobile(){
   const names=CONFIG.employees.map(e=>e.name);
