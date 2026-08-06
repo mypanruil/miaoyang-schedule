@@ -105,6 +105,7 @@
   .leave-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#f9fafb;border-radius:8px;margin-bottom:6px;flex-wrap:wrap}
   .leave-item .leave-info{font-size:13px;color:var(--txt)}
   .leave-item .leave-reason{font-size:12px;color:var(--mut);margin-top:2px}
+  .leave-hint{font-size:12px;color:var(--warn);text-align:center;padding:6px}
 
   @media (max-width:640px){
     body{font-size:15px}
@@ -473,6 +474,7 @@ function renderLeaves(leaves){
       ${l.reason?'<div class="leave-reason">事由：'+escHtml(l.reason)+'</div>':''}</div>
     </div>`;
   }).join('');
+  list.innerHTML+=`<div class="leave-hint">如需修改或撤销请假，请联系管理员在后台操作</div>`;
 }
 
 /* ---------- 全员排班总览 ---------- */
