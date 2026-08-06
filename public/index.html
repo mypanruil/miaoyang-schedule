@@ -275,6 +275,23 @@
   </div>
 </div>
 
+<!-- PIN 校验弹窗 -->
+<div id="pinModal" class="overlay" style="display:none;z-index:60" onclick="if(event.target===this)closePinModal()">
+  <div class="card" style="max-width:380px">
+    <div class="card-title" style="color:var(--err)">PIN 码不正确</div>
+    <p style="font-size:14px;margin:4px 0 12px;color:var(--mut)">请输入正确的 PIN 码后继续。输入正确后系统会记住，后续操作不再提示。</p>
+    <div class="field">
+      <label>PIN 码</label>
+      <input id="pinModalInput" type="password" placeholder="请输入正确的 PIN 码" autocomplete="off" onkeydown="if(event.key==='Enter')confirmPinModal()">
+    </div>
+    <div id="pinModalMsg" class="msg"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      <button class="ok" onclick="confirmPinModal()">确认</button>
+      <button class="ghost" onclick="closePinModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API='';
 let CONFIG=null;
@@ -421,6 +438,32 @@ function renderEmpCal(){
   document.getElementById('empSubmit').disabled=(rest>need)||empExpired;
 }
 function empSet(d,v){empState.schedule[d]=v;renderEmpCal();}
+
+/* ---------- PIN 校验弹窗 ---------- */
+let pinPending=null; // 记录待重试的操作：'submit' | 'leave'
+function showPinModal(action){
+  pinPending=action;
+  const inp=document.getElementById('pinModalInput');
+  inp.value='';
+  const m=document.getElementById('pinModalMsg');
+  m.className='msg'; m.textContent='';
+  document.getElementById('pinModal').style.display='flex';
+  setTimeout(()=>inp.focus(),30);
+}
+function closePinModal(){
+  document.getElementById('pinModal').style.display='none';
+  pinPending=null;
+}
+function confirmPinModal(){
+  const pin=document.getElementById('pinModalInput').value||'';
+  if(!pin){const m=document.getElementById('pinModalMsg');m.className='msg err';m.textContent='请输入 PIN 码';return;}
+  // 写入主 PIN 输入框：之后所有提交/请假都自动用正确 PIN，不再弹窗
+  document.getElementById('empPin').value=pin;
+  closePinModal();
+  if(pinPending==='submit') empSubmit();
+  else if(pinPending==='leave') doLeave();
+}
+
 async function empSubmit(){
   if(!CONFIG){showMsg('empMsg','系统配置加载中，请稍候','err');return;}
   const emp=document.getElementById('empSel').value;
@@ -431,7 +474,10 @@ async function empSubmit(){
     updateSubmitUI();
     showMsg('empMsg','提交成功！随时可以修改，重新提交即覆盖','ok');
     loadAll();
-  }catch(e){showMsg('empMsg',e,'err');}
+  }catch(e){
+    if(e && /PIN/.test(e.message||String(e))){ showPinModal('submit'); return; }
+    showMsg('empMsg',e,'err');
+  }
 }
 
 /* ---------- 请假申请 ---------- */
@@ -461,7 +507,10 @@ async function doLeave(){
     setTimeout(closeLeaveModal,1200);
     // 刷新请假记录
     if(!empExpired){empLoad();}
-  }catch(e){showMsg('leaveFormMsg',e,'err');}
+  }catch(e){
+    if(e && /PIN/.test(e.message||String(e))){ showPinModal('leave'); return; }
+    showMsg('leaveFormMsg',e,'err');
+  }
 }
 function renderLeaves(leaves){
   const sec=document.getElementById('leaveSection');
